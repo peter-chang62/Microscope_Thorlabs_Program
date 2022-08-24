@@ -9,6 +9,10 @@ class AptMotor(apt.KDC101_PRM1Z8):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ENC_CNT_MM = 34304.
+        self.VEL_SCALING_FACTOR = 65536
+        self.SAMPLING_INTERVAL = 2048 / 6e6
+        self.ENC_CNT_MM_S = self.ENC_CNT_MM * self.SAMPLING_INTERVAL * self.VEL_SCALING_FACTOR
+        self.ENC_CNT_MM_S2 = self.ENC_CNT_MM * self.SAMPLING_INTERVAL ** 2 * self.VEL_SCALING_FACTOR
 
     @_auto_connect
     def position(self, position=None):
@@ -49,6 +53,41 @@ class AptMotor(apt.KDC101_PRM1Z8):
         write_buffer = struct.pack("<6B", 0x65, 0x04, 0x01, 0x02,
                                    self.dst,
                                    self.src)
+        self.write(write_buffer)
+
+    @_auto_connect
+    def get_velocity_params(self):
+        # Request Velocity parameters
+        # MGMSG_MOT_REQ_VELPARAMS 0x0414
+        write_buffer = struct.pack("<6B", 0x14, 0x04, 0x01, 0x00,
+                                   self.dst,
+                                   self.src)
+        self.write(write_buffer)
+
+        # Get velocity parameters
+        # MGMSG_MOT_GET_VELPARAMS 0x0415
+        read_buffer = self.read(0x15, 0x04, req_buffer=write_buffer)
+        result = struct.unpack("<6BHlll", read_buffer)
+
+        [*header, start_vel, accel, max_vel] = result
+        start_vel /= self.ENC_CNT_MM_S  # divide by ENC_CNT_MM_S
+        max_vel /= self.ENC_CNT_MM_S  # divide by ENC_CNT_MM_S
+        accel /= self.ENC_CNT_MM_S2  # divide by ENC_CNT_MM_S2
+        return start_vel, max_vel, accel
+
+    @_auto_connect
+    def set_max_vel(self, max_vel_mm_s):
+        _, _, accel = self.get_velocity_params()
+        accel_enc_s2 = int(round(accel * self.ENC_CNT_MM_S2))  # multiply by ENC_CNT_MM_S2
+        max_vel_enc_s = int(round(max_vel_mm_s * self.ENC_CNT_MM_S))  # multiply by ENC_CNT_MM_S
+
+        # Set Velocity Parameters
+        # MGMSG_MOT_SET_VELPARAMS 0x0413
+        write_buffer = struct.pack("<6BHlll", 0x13, 0x04, 0x0E, 0x00,
+                                   self.dst | 0x80,
+                                   self.src,
+                                   0x01,
+                                   0, accel_enc_s2, max_vel_enc_s)  # passed in as min_vel, accel, max_vel
         self.write(write_buffer)
 
 
