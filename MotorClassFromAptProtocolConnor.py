@@ -8,12 +8,7 @@ import gc
 class AptMotor(apt.KDC101_PRM1Z8):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.ENC_CNT_MM = 24 * 2048 * 40.866
-        self.VEL_SCL_FCT = 107824097.5
-        self.ACC_SCL_FCT = 22097.3
-
-        self.ENC_CNT_DEG = None
+        self.ENC_CNT_MM = 34304.
 
     @_auto_connect
     def position(self, position=None):

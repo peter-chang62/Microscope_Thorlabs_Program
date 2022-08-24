@@ -288,18 +288,16 @@ class KDC101_PRM1Z8(APTDevice):
                                    self.dst, self.src)
         self.write(write_buffer)
         # MGMSG_MOT_GET_DCSTATUSUPDATE
-        read_buffer = self.read(0x81, 0x04, req_buffer=write_buffer)
-
+        read_buffer = self.read(0x91, 0x04, req_buffer=write_buffer)
         # MGMSG_MOT_ACK_DCSTATUSUPDATE
         ack_buffer = struct.pack("<BBBBBB", 0x92, 0x04,
                                  0x00, 0x00,
                                  self.dst, self.src)
         self.write(ack_buffer)
-
         # Unpack Read Buffer
         result = struct.unpack("<BBBBBBHlHHL", read_buffer)
-        position = result[7] / self.ENC_CNT_MM  # mm
-        velocity = result[8] / self.VEL_SCL_FCT  # mm/s
+        position = (result[7] / self.ENC_CNT_DEG) % 360  # degrees
+        velocity = result[8] / self.VEL_SCL_FCT  # degrees per second
         status_bits = {
             "forward hardware limit": bool(result[10] & 0x00000001),
             "reverse hardware limit": bool(result[10] & 0x00000002),
