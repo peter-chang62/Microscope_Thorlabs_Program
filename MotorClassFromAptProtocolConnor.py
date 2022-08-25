@@ -189,4 +189,4 @@ class KDC101(AptMotor):
         self.stop()
 
     def get_stage_axis_info(self):
-        return 0., 25., "mm", None
+        return 0., 12., "mm", None
