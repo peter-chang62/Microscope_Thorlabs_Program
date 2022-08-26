@@ -169,7 +169,22 @@ class AptMotor(apt.KDC101_PRM1Z8):
 
     @_auto_connect
     def set_trigger_pos_params(self, start_mm, stop_mm, step_mm, width_ms):
-        pass
+        # MGMSG_MOT_SET_KCUBEPOSTRIGPARAMS 0x0526
+        header = struct.pack("<6B", 0x26, 0x05, 0x2E, 0x00, 0xD0, self.src)
+
+        start_enc = int(np.round(start_mm * self.ENC_CNT_MM))
+        stop_enc = int(np.round(stop_mm * self.ENC_CNT_MM))
+        step_enc = int(np.round(step_mm * self.ENC_CNT_MM))
+        num_pulses = int(np.floor(abs(start_enc - stop_enc) / step_enc))
+        width_us = int(np.round(width_ms * 1e3))
+        num_cycle = 1
+
+        data = struct.pack("<H8l", 1, start_enc, step_enc, num_pulses, stop_enc,
+                           step_enc, num_pulses, width_us, num_cycle)
+
+        reserved = struct.pack("<3l", 0, 0, 0)
+        write_buffer = header + data + reserved
+        self.write(write_buffer)
 
 
 class KDC101(AptMotor):
