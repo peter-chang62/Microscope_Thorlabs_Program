@@ -256,6 +256,7 @@ class KDC101(AptMotor):
         # assuming it's in millimeters
         super().set_position(value_mm)
 
+    # ___________________________ redundant functions just for naming convention _______________________________________
     def move_to(self, value_mm):
         self.position = value_mm
 
