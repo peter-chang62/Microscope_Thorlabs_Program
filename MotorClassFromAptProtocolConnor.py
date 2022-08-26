@@ -274,14 +274,14 @@ class KDC101(AptMotor):
 
 
 # %% ___________________________________________________________________________________________________________________
-m = KDC101('com5')
-m.trigger_on = True
-m.step_mm = 0.01
-m.pulse_width_ms = 1
-
-m.set_max_vel(.1)
-m.position = 0
-m.stop_profiled()
-
-# m.get_trigger_io_params()
-# m.get_trigger_pos_params()
+# m = KDC101('com5')
+# m.trigger_on = True
+# m.step_mm = 0.01
+# m.pulse_width_ms = 1
+#
+# m.set_max_vel(.1)
+# m.position = 0
+# m.stop_profiled()
+#
+# # m.get_trigger_io_params()
+# # m.get_trigger_pos_params()
