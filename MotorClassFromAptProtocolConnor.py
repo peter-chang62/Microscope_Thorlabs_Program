@@ -91,7 +91,7 @@ class AptMotor(apt.KDC101_PRM1Z8):
         self.write(write_buffer)
 
     @_auto_connect
-    def get_trigger_params(self):
+    def get_trigger_io_params(self):
         # MGMSG_MOT_REQ_KCUBETRIGCONFIG 0x0524
         write_buffer = struct.pack("<6B", 0x24, 0x05, 0x01, 0x00,
                                    self.dst,
@@ -123,32 +123,53 @@ class AptMotor(apt.KDC101_PRM1Z8):
         [chan_ident, trig1_mode, trig1_pol, trig2_mode, trig2_pol, *reserved] = result[6:]
         return trig1_mode, trig1_pol, trig2_mode, trig2_pol
 
-    # @_auto_connect
-    # def set_output_trigger_params(self, trig2_mode):
-    #     # MGMSG_MOT_SET_KCUBETRIGIOCONFIG 0x0523
-    #
-    #     # OUTPUT Trigger Modes
-    #     # 10: General purpose logic output (set using the MOD_SET_DIGOUTPUTS message).
-    #     #
-    #     # 11: Trigger output active (level) when motor 'in motion'. The output trigger goes high (5V) or low (0V) (as
-    #     # set in the lTrig1Polarity and lTrig2Polarity parameters) when the stage is in motion
-    #     #
-    #     # 12: Trigger output active (level) when motor at 'max velocity'.
-    #     #
-    #     # 13: Trigger output active (pulsed) at pre-defined positions moving forward (set using StartPosFwd,
-    #     # IntervalFwd, NumPulsesFwd and PulseWidth parameters in the SetKCubePosTrigParams message). Only one Trigger
-    #     # port at a time can be set to this mode.
-    #     #
-    #     # 14: Trigger output active (pulsed) at pre-defined positions moving backwards (set using StartPosRev,
-    #     # IntervalRev, NumPulsesRev and PulseWidth parameters in the SetKCubePosTrigParams message). Only one Trigger
-    #     # port at a time can be set to this mode
-    #     #
-    #     # 15: Trigger output active (pulsed) at pre-defined positions moving forwards and backward. Only one Trigger
-    #     # port at a time can be set to this mode.
-    #     header = struct.pack("<6B", 0x23, 0x05, 0x0C, 0x00, self.dst, self.src)
-    #     data = struct.pack("11H", 0x01, 0x01, 0x01, 0x0A, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
-    #     write_buffer = header + data
-    #     self.write(write_buffer)
+    @_auto_connect
+    def set_trigger_io_params(self, trig1_mode=0x01, trig2_mode=0x0A):
+        # MGMSG_MOT_SET_KCUBETRIGIOCONFIG 0x0523
+
+        # OUTPUT Trigger Modes
+        # 10: General purpose logic output (set using the MOD_SET_DIGOUTPUTS message).
+        #
+        # 11: Trigger output active (level) when motor 'in motion'. The output trigger goes high (5V) or low (0V) (as
+        # set in the lTrig1Polarity and lTrig2Polarity parameters) when the stage is in motion
+        #
+        # 12: Trigger output active (level) when motor at 'max velocity'.
+        #
+        # 13: Trigger output active (pulsed) at pre-defined positions moving forward (set using StartPosFwd,
+        # IntervalFwd, NumPulsesFwd and PulseWidth parameters in the SetKCubePosTrigParams message). Only one Trigger
+        # port at a time can be set to this mode.
+        #
+        # 14: Trigger output active (pulsed) at pre-defined positions moving backwards (set using StartPosRev,
+        # IntervalRev, NumPulsesRev and PulseWidth parameters in the SetKCubePosTrigParams message). Only one Trigger
+        # port at a time can be set to this mode
+        #
+        # 15: Trigger output active (pulsed) at pre-defined positions moving forwards and backward. Only one Trigger
+        # port at a time can be set to this mode.
+        header = struct.pack("<6B", 0x23, 0x05, 0x16, 0x00, 0xd0, self.src)
+        data = struct.pack("11H", 0x01, trig1_mode, 0x01, trig2_mode, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+        write_buffer = header + data
+        self.write(write_buffer)
+
+    @_auto_connect
+    def get_trigger_pos_params(self):
+        # MGMSG_MOT_REQ_KCUBEPOSTRIGPARAMS 0x0527
+        write_buffer = struct.pack("<6B", 0x27, 0x05, 0x01, 0x00, self.dst, self.src)
+        self.write(write_buffer)
+
+        # MGMSG_MOT_GET_KCUBEPOSTRIGPARAMS 0x0528
+        read_buffer = self.read(0x28, 0x05, req_buffer=write_buffer)
+        result = struct.unpack("<8l", read_buffer[8:8 + 32])
+        [start_fwd, interval_fwd, num_fwd, start_rev, interval_rev, num_rev, width_us, num_cycles] = result
+        start_fwd /= self.ENC_CNT_MM
+        interval_fwd /= self.ENC_CNT_MM
+        start_rev /= self.ENC_CNT_MM
+        interval_rev /= self.ENC_CNT_MM
+        width_ms = width_us * 1e-3
+        return start_fwd, interval_fwd, num_fwd, start_rev, interval_rev, num_rev, width_ms, num_cycles
+
+    @_auto_connect
+    def set_trigger_pos_params(self, start_mm, stop_mm, step_mm, width_ms):
+        pass
 
 
 class KDC101(AptMotor):

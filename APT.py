@@ -145,7 +145,7 @@ class APTDevice():
                 header = struct.unpack("<BBBBBB", read_buffer)
                 # Check for data packet
                 if bool(header[4] & 0x80):
-                    packet_length = struct.unpack("<H", read_buffer[2:3 + 1])[0]
+                    packet_length = struct.unpack("<H", read_buffer[2:4])[0]
                     data_buffer = self.ser.read(packet_length)
                     read_buffer = read_buffer + data_buffer
                 # Check msg_id
