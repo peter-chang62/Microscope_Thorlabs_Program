@@ -3,6 +3,8 @@ from Error import Ui_Form
 import utilities as util
 from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
+from Window import Ui_MainWindow
+import sys
 
 edge_limit_buffer_mm = 0.0  # 1 um
 
@@ -109,3 +111,16 @@ class MotorInterface:
             return True
         else:
             return False
+
+
+class Gui(qt.QMainWindow, Ui_MainWindow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+        self.show()
+
+
+if __name__ == '__main__':
+    app = qt.QApplication([])
+    gui = Gui()
+    app.exec()
