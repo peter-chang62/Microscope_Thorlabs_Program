@@ -1,9 +1,8 @@
 import PyQt5.QtWidgets as qt
-from Error import Ui_Form
+from Error_Window import Ui_Form
 import utilities as util
 from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
-from Window import Ui_MainWindow
 import sys
 
 edge_limit_buffer_mm = 0.0  # 1 um

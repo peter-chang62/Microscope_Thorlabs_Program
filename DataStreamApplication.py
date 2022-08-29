@@ -24,6 +24,7 @@ import PlotWidgets as pw
 import PyQt5.QtGui as qtg
 import ProcessingFunctions as pf
 import pyfftw
+from datetime import datetime
 
 from GageConstants import (CS_CURRENT_CONFIGURATION, CS_ACQUISITION_CONFIGURATION,
                            CS_STREAM_TOTALDATA_SIZE_BYTES, CS_DATAPACKING_MODE, CS_MASKED_MODE,
@@ -35,11 +36,11 @@ from GageErrors import (CS_MISC_ERROR,
                         CS_STM_TRANSFER_TIMEOUT,
                         CS_STM_COMPLETED)
 import array
-from Error import Ui_Form
+from Error_Window import Ui_Form
 import Acquire
 
 # default parameters
-TRANSFER_TIMEOUT = 10000  # milliseconds
+TRANSFER_TIMEOUT = -1  # milliseconds
 STREAM_BUFFERSIZE = 0x200000  # 2097152
 MAX_SEGMENT_COUNT = 25000
 inifile_default = 'include/Stream2Analysis.ini'
@@ -553,7 +554,7 @@ class CardStream():
                  stream_aborted_event, stream_error_event,
                  g_segmentCounted, g_cardTotalData,
                  parent):
-        parent: Stream
+        parent: Gui
         self.handle = handle
         self.card_index = card_index
         self.sample_size = sample_size
@@ -1013,9 +1014,14 @@ class CardStreamSaveData(CardStream):
         self.parent.workBuffer_initiated_event.set()
 
         # what if I did this?
-        del self.parent.data_storage_buffer
-        gc.collect()
-        self.parent.data_storage_buffer = np.zeros((self.N_ifgs_to_fill_buffer, self.app['BufferSize']), dtype=np.uint8)
+        if not self.parent.save_data_loopcount:
+            del self.parent.data_storage_buffer
+            gc.collect()
+
+        # if already saving data, don't bother!
+        if not self.parent.save_data_loopcount:
+            self.parent.data_storage_buffer = np.zeros((self.N_ifgs_to_fill_buffer, self.app['BufferSize']),
+                                                       dtype=np.uint8)
 
         # work_buffer_active is initially false. So, the first loop simply acquires data into buffer1,
         # then work_buffer_active is set to True, and the work_buffer is set to buffer1
@@ -1059,7 +1065,18 @@ class CardStreamSaveData(CardStream):
                 self.signal.progress.emit(None)
 
                 # save the data!
-                self.parent.data_storage_buffer[loop_count - 1][:] = self.stream_info.WorkBuffer[:]
+                if not self.parent.save_data_loopcount:
+                    self.parent.data_storage_buffer[loop_count - 1][:] = self.stream_info.WorkBuffer[:]
+
+                # if active data backup is on, save data to a file in the backup folder, make sure to set it
+                # differently for each card!
+                else:
+                    # the save path is the data backup path
+                    # and the name goes as: the loop count + date time
+                    # there is also a time stamp in the data segment itself
+                    self.stream_info.WorkBuffer.tofile(self.parent.databackup_path +
+                                                       f'LoopCount_{loop_count}_Datetime_' +
+                                                       datetime.now().strftime("%d%m%Y_%H_%M_%S") + '.bin')
                 print(loop_count)
 
             # Wait for the DMA transfer on the current buffer to complete so we can loop back around to start a new one.
@@ -1190,6 +1207,9 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
         self.tableWidget.item(2, 0).setText(str(segment_size))
         self.tableWidget.item(3, 0).setText(str(extclk))
         self.saved_table_widget_item_text = 'hello world'
+
+        self.save_data_loopcount = False
+        self.databackup_path = 'DataBackup/single_card/'
 
     @property
     def plotchecklevel(self):
@@ -1412,7 +1432,7 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
 
         # I'm expecting this function to be called by stream_data after self.app has been initialized
         buffersize = self.app['BufferSize']
-        N = int(np.floor(self.data_storage_size / buffersize))
+        N = int(np.ceil(self.data_storage_size / buffersize))
         self.N_ifgs_to_fill_buffer = N
 
         self.data_storage_size = N * buffersize

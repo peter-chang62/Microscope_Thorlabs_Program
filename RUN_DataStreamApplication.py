@@ -34,6 +34,12 @@ if NUMBER_OF_CARDS == 1:
 else:
     from GuiDesigner_TWO_CARDS import Ui_MainWindow
 
+extTrigger = False
+if extTrigger:
+    ActiveSaveData = True
+else:
+    ActiveSaveData = False
+
 
 class GuiWindow(qt.QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
@@ -158,7 +164,16 @@ class StreamWithGui(dsa.Stream):
 
         self.wait_time = 100
 
-        self.ready_for_other_card = threading.Event()
+        # don't forget to set ActiveSaveData to True before starting the real shocktube experiment
+        self.save_data_loopcount = ActiveSaveData
+
+        # if self.card_index is 1, set the data back up path to the data back up for card 1 folder
+        if self.card_index == 1:
+            self.databackup_path = 'DataBackup/card1/'
+
+        # otherwise, if card_index is two, set it to the data backup folder for card 2
+        elif self.card_index == 2:
+            self.databackup_path = 'DataBackup/card2/'
 
     @property
     def plotchecklevel(self):
@@ -290,133 +305,6 @@ class StreamWithGui(dsa.Stream):
 
         if self.streaming_buffer_size_to_set is not None:
             self.app["BufferSize"] = self.streaming_buffer_size_to_set
-
-    def stream_both_cards(self):
-        """
-                This overrides the stream_data method in Stream(). It adds the option to save data by running
-                CardStreamSaveData instead of CardStream. It is otherwise the same as stream_data in Stream.
-                """
-
-        if self.card_stream_running.is_set():
-            print("stream is already running, cannot start another")
-            return
-
-        self.stream_started_event.clear()
-        self.ready_for_stream_event.clear()
-        self.stream_aborted_event.clear()
-        self.stream_error_event.clear()
-        self.workBuffer_initiated_event.clear()
-
-        self.g_cardTotalData = []
-        self.g_segmentCounted = []
-
-        # initialize
-        self.initialization_before_streaming()
-
-        # Returns the frequency of the timestamp counter in Hertz for the CompuScope system associated with the
-        # handle. negative if an error occurred
-        self.g_tickFrequency = PyGage.GetTimeStampFrequency(self.handle)
-
-        if self.g_tickFrequency < 0:
-            print("Error: ", PyGage.GetErrorString(self.g_tickFrequency))
-            PyGage.FreeSystem(self.handle)
-            raise SystemExit
-
-        # after commit the sample size may change
-        # get the big acquisition configuration dict
-        acq_config = PyGage.GetAcquisitionConfig(self.handle)
-
-        # get total amount of data we expect to receive in bytes, negative if an error occurred
-        total_samples = PyGage.GetStreamTotalDataSizeInBytes(self.handle)
-
-        if total_samples < 0 and total_samples != acq_config['SegmentSize']:
-            print("Error: ", PyGage.GetErrorString(total_samples))
-            PyGage.FreeSystem(self.handle)
-            raise SystemExit
-
-        # convert from bytes -> samples and print it to screen
-        if total_samples != -1:
-            total_samples = total_samples // self.system_info['SampleSize']
-            print("total samples is: ", total_samples)
-
-        if self.chkbx_save_data.isChecked():
-            self.calc_data_storage_buffer_size()
-            pass
-
-        """We first initialize and start the card stream thread. The card stream thread initializes two buffers and 
-        handles the data transfer to the buffers. Then we send the command to the Gage Card to start the data capture. 
-
-        After that, we initialize and start the thread that tracks the progress of the data stream. This thread emits 
-        signals that are used to plot data on the GUI. """
-
-        # annoys me that I don't know if this is necessary but whatever
-        del self.card_stream
-        gc.collect()
-        if self.chkbx_save_data.isChecked():
-            self.card_stream = dsa.CardStreamSaveData(self.handle, self.card_index,
-                                                      self.system_info['SampleSize'],
-                                                      self.app,
-                                                      self.stream_started_event,
-                                                      self.ready_for_stream_event,
-                                                      self.stream_aborted_event,
-                                                      self.stream_error_event,
-                                                      self.g_segmentCounted,
-                                                      self.g_cardTotalData, self)
-        else:
-            self.card_stream = dsa.CardStream(self.handle, self.card_index,
-                                              self.system_info['SampleSize'],
-                                              self.app,
-                                              self.stream_started_event,
-                                              self.ready_for_stream_event,
-                                              self.stream_aborted_event,
-                                              self.stream_error_event,
-                                              self.g_segmentCounted,
-                                              self.g_cardTotalData, self)
-        self.connect_card_stream_update()
-        self._a1 = self.card_stream._a1
-        self._a2 = self.card_stream._a2
-        thread_cardstream = threading.Thread(target=self.card_stream.run)
-
-        if self.card_index == 1:
-            self.shared_info.ready_for_card1.set()
-            self.shared_info.ready_for_card2.wait()
-        elif self.card_index == 2:
-            self.shared_info.ready_for_card2.set()
-            self.shared_info.ready_for_card1.wait()
-
-        thread_cardstream.start()
-
-        # the card_stream function should have set the self.ready_for_stream_event to true, if it is not true
-        # then an error occurred
-        set = self.ready_for_stream_event.wait(5)
-        if not set:
-            print("\nThread initialization error on card ", self.card_index)
-            self.stream_aborted_event.set()
-            PyGage.FreeSystem(self.handle)
-            raise SystemExit
-
-        # won't work anymore now that I've thrown the update onto a separate thread
-        # (a thread that is not main)
-        # print("\nStarting streaming. Press CTRL-C to abort\n\n")
-
-        # start the capture!
-        status = PyGage.StartCapture(self.handle)
-        if status < 0:
-            # get error string
-            print("Error: ", PyGage.GetErrorString(status))
-            PyGage.FreeSystem(self.handle)
-            raise SystemExit  # ??
-
-        # get tick count
-        self.stream_started_event.set()
-
-        # annoys me that I don't know if this is necessary but whatever
-        del self.trackingstream
-        gc.collect()
-        self.trackingstream = dsa.TrackStreamProgress(self, thread_cardstream)
-        self.connect_tracking_stream_update()
-        thread_trackstream = threading.Thread(target=self.trackingstream.run)
-        thread_trackstream.start()
 
     def stream_data(self):
         """
@@ -642,8 +530,7 @@ class StreamWithGui(dsa.Stream):
 
         self.actionSave.triggered.connect(self.save)
 
-        # self.btn_start_both_streams.clicked.connect(self.stream_data)
-        self.btn_start_both_streams.clicked.connect(self.stream_both_cards)
+        self.btn_start_both_streams.clicked.connect(self.stream_data)
         self.btn_stop_both_streams.clicked.connect(self.terminate)
 
         # table widget connections
@@ -831,9 +718,6 @@ class StreamWithGui(dsa.Stream):
         super().terminate()
         if self.card_index == 1:
             self.shared_info.handle1_initialized = False
-            self.shared_info.ready_for_card1.clear()
-        elif self.card_index == 2:
-            self.shared_info.ready_for_card2.clear()
 
 
 class GuiTwoCards(qt.QMainWindow, Ui_MainWindow):
@@ -846,24 +730,30 @@ class GuiTwoCards(qt.QMainWindow, Ui_MainWindow):
 
         # if you want to use the Two Cards Gui, but only running one of the cards, comment out the appropriate
         # stream1 or stream2 lines below
-        self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_CARD1.ini',
-                                     inifile_acquire='include/Acquire_CARD1.ini',
-                                     shared_info=self.shared_info)
-        self.stream2 = StreamWithGui(self, index=2, inifile_stream='include/Stream2Analysis_CARD2.ini',
-                                     inifile_acquire='include/Acquire_CARD2.ini',
-                                     shared_info=self.shared_info)
+        if extTrigger:
+            self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_exttrigger.ini',
+                                         inifile_acquire='include/Acquire_CARD1.ini',
+                                         shared_info=self.shared_info)
+            self.stream2 = StreamWithGui(self, index=2, inifile_stream='include/Stream2Analysis_exttrigger.ini',
+                                         inifile_acquire='include/Acquire_CARD2.ini',
+                                         shared_info=self.shared_info)
+        else:
+            self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_CARD1.ini',
+                                         inifile_acquire='include/Acquire_CARD1.ini',
+                                         shared_info=self.shared_info)
+            self.stream2 = StreamWithGui(self, index=2, inifile_stream='include/Stream2Analysis_CARD2.ini',
+                                         inifile_acquire='include/Acquire_CARD2.ini',
+                                         shared_info=self.shared_info)
 
         self.show()
 
 
 class SharedInfo:
-    __slots__ = ["center_ind", "handle1_initialized", "ready_for_card1", "ready_for_card2"]
+    __slots__ = ["center_ind", "handle1_initialized"]
 
     def __init__(self):
         self.center_ind = None
         self.handle1_initialized = False
-        self.ready_for_card1 = threading.Event()
-        self.ready_for_card2 = threading.Event()
 
 
 app = qt.QApplication([])
