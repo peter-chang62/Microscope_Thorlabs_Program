@@ -119,6 +119,23 @@ def setExtClk(inifile=inifile_default, extclk=1):
     print(f"overwrote external clock in {inifile} to {extclk}")
 
 
+def setExtTrigger(inifile=inifile_default, exttrigger=0):  # self-trigger by default
+    assert exttrigger == 1 or exttrigger == 0, f"external trigger needs to be 0 or 1 but got {exttrigger}"
+
+    config = ConfigParser()
+    config.read(inifile)
+    if exttrigger:
+        source = -1
+        config["Trigger1"]["source"] = str(-1)  # external trigger is True
+    else:
+        source = 1
+        config["Trigger1"]["source"] = str(1)  # external trigger is False ->  self-trigger (channel 1)
+
+    with open(inifile, 'w') as configfile:
+        config.write(configfile)
+    print(f"overwrote Trigger1 source in {inifile} to {source}")
+
+
 # finding a gauge card and returning the handle
 # the handle is just an integer used to identify the card,
 # and sort of "is" the gage card

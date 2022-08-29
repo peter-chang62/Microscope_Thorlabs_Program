@@ -170,10 +170,16 @@ class StreamWithGui(dsa.Stream):
         plotchecklevel = config['PlotCheckLevel']['plotchecklevel']
         segmentsize = config['Acquisition']['SegmentSize']
         extclk = config['Acquisition']['extclk']
+        ext_trigger = config['Trigger1']['source']
+        if ext_trigger == -1:
+            ext_trigger = 1
+        else:
+            ext_trigger = 0
         self.tableWidget.item(0, 0).setText(str(level))
         self.tableWidget.item(1, 0).setText(str(plotchecklevel))
         self.tableWidget.item(2, 0).setText(str(segmentsize))
         self.tableWidget.item(3, 0).setText(str(extclk))
+        self.tableWidget.item(4, 0).setText(str(ext_trigger))
         self.saved_table_widget_item_text = 'hello world'
 
         self.wait_time = 100
@@ -211,6 +217,9 @@ class StreamWithGui(dsa.Stream):
 
         if (row, col) == (3, 0):
             self.setExtClk(row, col)
+
+        if (row, col) == (4, 0):
+            self.setTriggerSource(row, col)
 
     def set_new_plotchecklevel(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
@@ -273,6 +282,21 @@ class StreamWithGui(dsa.Stream):
 
         dsa.setExtClk(self.inifile_stream, extclk)
         dsa.setExtClk(self.inifile_acquire, extclk)
+
+    def setTriggerSource(self, row, col):
+        if not self.tableWidget.item(row, col).text().isnumeric():
+            dsa.raise_error(self.ErrorWindow, "input must be an integer")
+            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            return
+
+        ext_trigger = int(self.tableWidget.item(row, col).text())
+
+        if not any([ext_trigger == 0, ext_trigger == 1]):
+            dsa.raise_error(self.ErrorWindow, "external trigger must be 0 or 1")
+            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            return
+
+        dsa.setExtTrigger(self.inifile_stream, ext_trigger)  # only change trigger source for streaming
 
     def plot(self):
         if self.single_acquire_array is None:

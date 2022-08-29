@@ -1016,6 +1016,11 @@
                <string>Ext Clk</string>
               </property>
              </row>
+             <row>
+              <property name="text">
+               <string>Ext Trigger</string>
+              </property>
+             </row>
              <column>
               <property name="text">
                <string>Value</string>
@@ -1037,6 +1042,11 @@
               </property>
              </item>
              <item row="3" column="0">
+              <property name="text">
+               <string>hello world</string>
+              </property>
+             </item>
+             <item row="4" column="0">
               <property name="text">
                <string>hello world</string>
               </property>
@@ -1074,6 +1084,11 @@
                <string>Ext Clk</string>
               </property>
              </row>
+             <row>
+              <property name="text">
+               <string>Ext Trigger</string>
+              </property>
+             </row>
              <column>
               <property name="text">
                <string>Value</string>
@@ -1095,6 +1110,11 @@
               </property>
              </item>
              <item row="3" column="0">
+              <property name="text">
+               <string>hello world</string>
+              </property>
+             </item>
+             <item row="4" column="0">
               <property name="text">
                <string>hello world</string>
               </property>
