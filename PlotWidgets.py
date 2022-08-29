@@ -51,18 +51,18 @@ def create_curve(color='b', width=2, x=None, y=None):
 
 
 class PlotWindow:
-    def __init__(self, le_wl_ll, le_wl_ul, le_ll, le_ul, plotwidget):
-        le_wl_ll: qt.QLineEdit
-        le_wl_ul: qt.QLineEdit
-        le_ll: qt.QLineEdit
-        le_ul: qt.QLineEdit
+    def __init__(self, le_x_ll, le_x_ul, le_y_ll, le_y_ul, plotwidget):
+        le_x_ll: qt.QLineEdit
+        le_x_ul: qt.QLineEdit
+        le_y_ll: qt.QLineEdit
+        le_y_ul: qt.QLineEdit
         plotwidget: PlotWidget
 
         self.plotwidget = plotwidget
-        self.le_wl_ll = le_wl_ll
-        self.le_wl_ul = le_wl_ul
-        self.le_ll = le_ll
-        self.le_ul = le_ul
+        self.le_wl_ll = le_x_ll
+        self.le_wl_ul = le_x_ul
+        self.le_ll = le_y_ll
+        self.le_ul = le_y_ul
 
         self.le_wl_ll.setValidator(qtg.QDoubleValidator())
         self.le_wl_ul.setValidator(qtg.QDoubleValidator())
