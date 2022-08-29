@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -1140,16 +1140,6 @@
          </rect>
         </property>
        </widget>
-       <widget class="QGraphicsView" name="graphicsView_2">
-        <property name="geometry">
-         <rect>
-          <x>790</x>
-          <y>40</y>
-          <width>731</width>
-          <height>591</height>
-         </rect>
-        </property>
-       </widget>
        <widget class="QLabel" name="label_13">
         <property name="geometry">
          <rect>
@@ -1163,11 +1153,16 @@
          <string>Imaging</string>
         </property>
        </widget>
-       <widget class="QLabel" name="label_29">
+      </widget>
+      <widget class="QWidget" name="tab_4">
+       <attribute name="title">
+        <string>1D Scanning</string>
+       </attribute>
+       <widget class="QLabel" name="label_30">
         <property name="geometry">
          <rect>
-          <x>790</x>
-          <y>20</y>
+          <x>260</x>
+          <y>50</y>
           <width>47</width>
           <height>13</height>
          </rect>
@@ -1176,11 +1171,41 @@
          <string>Spectrum</string>
         </property>
        </widget>
-      </widget>
-      <widget class="QWidget" name="tab_4">
-       <attribute name="title">
-        <string>1D Scanning</string>
-       </attribute>
+       <widget class="QGraphicsView" name="graphicsView_5">
+        <property name="geometry">
+         <rect>
+          <x>260</x>
+          <y>70</y>
+          <width>731</width>
+          <height>591</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QComboBox" name="comboBox">
+        <property name="geometry">
+         <rect>
+          <x>1080</x>
+          <y>70</y>
+          <width>192</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <item>
+         <property name="text">
+          <string>Vpp time domain</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Peak frequency domain</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Integrated area frequency domain</string>
+         </property>
+        </item>
+       </widget>
       </widget>
      </widget>
     </item>
