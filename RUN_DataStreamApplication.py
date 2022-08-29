@@ -41,6 +41,16 @@ else:
     ActiveSaveData = False
 
 
+def isnumeric(s):
+    s: str
+    if s.isnumeric():
+        return True
+    elif s.startswith('-') or s.startswith('+'):
+        return s[1:].isnumeric()
+    else:
+        return False
+
+
 class GuiWindow(qt.QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -158,8 +168,12 @@ class StreamWithGui(dsa.Stream):
         config.read(self.inifile_stream)
         level = config['Trigger1']['Level']
         plotchecklevel = config['PlotCheckLevel']['plotchecklevel']
+        segmentsize = config['Acquisition']['SegmentSize']
+        extclk = config['Acquisition']['extclk']
         self.tableWidget.item(0, 0).setText(str(level))
         self.tableWidget.item(1, 0).setText(str(plotchecklevel))
+        self.tableWidget.item(2, 0).setText(str(segmentsize))
+        self.tableWidget.item(3, 0).setText(str(extclk))
         self.saved_table_widget_item_text = 'hello world'
 
         self.wait_time = 100
@@ -192,6 +206,12 @@ class StreamWithGui(dsa.Stream):
         if (row, col) == (1, 0):
             self.set_new_plotchecklevel(row, col)
 
+        if (row, col) == (2, 0):
+            self.setSegmentSize(row, col)
+
+        if (row, col) == (3, 0):
+            self.setExtClk(row, col)
+
     def set_new_plotchecklevel(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             dsa.raise_error(self.ErrorWindow, "input must be an integer")
@@ -222,6 +242,37 @@ class StreamWithGui(dsa.Stream):
 
         dsa.setNewTriggerLevel(self.inifile_stream, level_percent)
         dsa.setNewTriggerLevel(self.inifile_acquire, level_percent)
+
+    def setSegmentSize(self, row, col):
+        if not isnumeric(self.tableWidget.item(row, col).text()):
+            dsa.raise_error(self.ErrorWindow, "input must be an integer")
+            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            return
+
+        segmentsize = int(self.tableWidget.item(row, col).text())
+
+        if (segmentsize == 0) or (segmentsize < -1):
+            dsa.raise_error(self.ErrorWindow, "segment size must be >= 1 or else be -1")
+            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            return
+
+        dsa.setSegmentSize(self.inifile_stream, segmentsize)
+
+    def setExtClk(self, row, col):
+        if not isnumeric(self.tableWidget.item(row, col).text()):
+            dsa.raise_error(self.ErrorWindow, "input must be an integer")
+            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            return
+
+        extclk = int(self.tableWidget.item(row, col).text())
+
+        if not any([extclk == 0, extclk == 1]):
+            dsa.raise_error(self.ErrorWindow, "extclk must be 0 or 1")
+            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            return
+
+        dsa.setExtClk(self.inifile_stream, extclk)
+        dsa.setExtClk(self.inifile_acquire, extclk)
 
     def plot(self):
         if self.single_acquire_array is None:
