@@ -490,7 +490,7 @@ class StreamWithGui(dsa.Stream):
             raise SystemExit  # ??
 
         # ______________________________________________________________________________________________________________
-        # In the following, the function calls that causes the GUI to freeze in the case that the stream is waiting
+        # In the following, the function calls that cause the GUI to freeze in the case that the stream is waiting
         # on data to come in:
         #   1. self.stream_started_event.set() which is waited on by CardStream.run to start the data transfer loop
         #   2. self.connect_tracking_stream_update() not sure why this is, but it does and as a result all the other
