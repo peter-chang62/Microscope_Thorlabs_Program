@@ -497,7 +497,8 @@ class StreamWithGui(dsa.Stream):
         #      thread_trackstream stuff that depends on it can't go either
         #
         # Just to note, it can still get by the self.stream_started_event.set() call and go on to call the next
-        # function, such as telling the motor to move or something
+        # function, such as telling the motor to move or something. I've verified that even if the GUI freezes,
+        # it does enter the while loop of CardStream.run
         # ______________________________________________________________________________________________________________
 
         # CardStream.run waits for this flag before running the loop that transfers data to RAM
