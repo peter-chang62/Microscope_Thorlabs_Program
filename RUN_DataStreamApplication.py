@@ -466,7 +466,7 @@ class StreamWithGui(dsa.Stream):
         self._a1 = self.card_stream._a1
         self._a2 = self.card_stream._a2
         thread_cardstream = threading.Thread(target=self.card_stream.run)
-        thread_cardstream.start()
+        thread_cardstream.start()  # this starts the card stream while loop
 
         # the card_stream function should have set the self.ready_for_stream_event to true, if it is not true
         # then an error occurred
@@ -498,7 +498,8 @@ class StreamWithGui(dsa.Stream):
         self.trackingstream = dsa.TrackStreamProgress(self, thread_cardstream)
         self.connect_tracking_stream_update()
         thread_trackstream = threading.Thread(target=self.trackingstream.run)
-        thread_trackstream.start()
+        thread_trackstream.start()  # this loop updates the amount of data streamed to the Gui, and checks for errors
+        # or stream abort
 
     def calc_data_storage_buffer_size(self):
         if self.data_storage_size is None:
