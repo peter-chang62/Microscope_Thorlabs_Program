@@ -495,10 +495,15 @@ class StreamWithGui(dsa.Stream):
         #   1. self.stream_started_event.set() which is waited on by CardStream.run to start the data transfer loop
         #   2. self.connect_tracking_stream_update() not sure why this is, but it does and as a result all the other
         #      thread_trackstream stuff that depends on it can't go either
+        #
+        # Just to note, it can still get by the self.stream_started_event.set() call and go on to call the next
+        # function, such as telling the motor to move or something
         # ______________________________________________________________________________________________________________
 
         # CardStream.run waits for this flag before running the loop that transfers data to RAM
         self.stream_started_event.set()
+
+        # print("I can still get by setting this flag and call the next function though ...")
 
         # annoys me that I don't know if this is necessary but whatever
         del self.trackingstream
