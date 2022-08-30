@@ -481,7 +481,7 @@ class StreamWithGui(dsa.Stream):
         # (a thread that is not main)
         # print("\nStarting streaming. Press CTRL-C to abort\n\n")
 
-        # start the capture!
+        # if set passed, then CardStream.run finished the buffer preparation, and we can start the capture!
         status = PyGage.StartCapture(self.handle)
         if status < 0:
             # get error string
@@ -489,7 +489,15 @@ class StreamWithGui(dsa.Stream):
             PyGage.FreeSystem(self.handle)
             raise SystemExit  # ??
 
-        # get tick count
+        # ______________________________________________________________________________________________________________
+        # In the following, the function calls that causes the GUI to freeze in the case that the stream is waiting
+        # on data to come in:
+        #   1. self.stream_started_event.set() which is waited on by CardStream.run to start the data transfer loop
+        #   2. self.connect_tracking_stream_update() not sure why this is, but it does and as a result all the other
+        #      thread_trackstream stuff that depends on it can't go either
+        # ______________________________________________________________________________________________________________
+
+        # CardStream.run waits for this flag before running the loop that transfers data to RAM
         self.stream_started_event.set()
 
         # annoys me that I don't know if this is necessary but whatever
