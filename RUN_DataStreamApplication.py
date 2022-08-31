@@ -845,11 +845,10 @@ class SharedInfo:
         self.center_ind = None
         self.handle1_initialized = False
 
-
-if __name__ == '__main__':
-    app = qt.QApplication([])
-    if NUMBER_OF_CARDS == 1:
-        hey = dsa.Gui()
-    else:
-        hey = GuiTwoCards()
-    app.exec()
+# if __name__ == '__main__':
+#     app = qt.QApplication([])
+#     if NUMBER_OF_CARDS == 1:
+#         hey = dsa.Gui()
+#     else:
+#         hey = GuiTwoCards()
+#     app.exec()

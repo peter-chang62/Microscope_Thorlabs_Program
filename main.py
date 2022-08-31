@@ -4,6 +4,7 @@ from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
 import MotorClassFromAptProtocolConnor as apt
 import sys
+import RUN_DataStreamApplication as dsa
 
 edge_limit_buffer_mm = 0.0  # 1 um
 
@@ -145,3 +146,54 @@ class MotorInterface:
             return True
         else:
             return False
+
+
+# ______________________________________________________________________________________________________________________
+# This class is essentially the imaging version of the StreamWithGui class from RUN_DataStreamApplication.py
+# ______________________________________________________________________________________________________________________
+class StreamWithGui(dsa.StreamWithGui):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
+    def __init__(self):
+        qt.QMainWindow.__init__(self)
+        dsa.Ui_MainWindow.__init__(self)
+        self.setupUi(self)
+
+        self.shared_info = dsa.SharedInfo()
+
+        self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_CARD1.ini',
+                                     inifile_acquire='include/Acquire_CARD1.ini',
+                                     shared_info=self.shared_info)
+        self.stream2 = StreamWithGui(self, index=2, inifile_stream='include/Stream2Analysis_CARD2.ini',
+                                     inifile_acquire='include/Acquire_CARD2.ini',
+                                     shared_info=self.shared_info)
+
+        self.show()
+
+        self._card_index = 1
+        self.active_stream = self.stream1
+
+        self.connect()
+
+    def connect(self):
+        self.radbtn_card1.clicked.connect(self.select_card_index)
+        self.radbtn_card2.clicked.connect(self.select_card_index)
+
+    def select_card_index(self):
+        if self.radbtn_card1.isChecked():
+            self._card_index = 1
+            self.active_stream = self.stream1
+            print("selecting card 1")
+        elif self.radbtn_card2.isChecked():
+            self._card_index = 2
+            self.active_stream = self.stream2
+            print("selecting card 2")
+
+
+if __name__ == '__main__':
+    app = qt.QApplication([])
+    hey = GuiTwoCards()
+    app.exec()
