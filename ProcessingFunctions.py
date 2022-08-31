@@ -5,31 +5,30 @@ import matplotlib.pyplot as plt
 the returned points per interferogram is the average of the distance between interferogram maxes """
 
 
-def _get_initial_npts_guess(dat, level_percent=40):
-    level = np.max(abs(dat)) * level_percent * .01
-    ind = (dat > level).nonzero()[0]
-    dind = np.diff(ind)
-    return int(np.round(np.mean(dind[dind > 1000]))), level
+def adjust_data_and_reshape(data, ppifg):
+    """
+    :param data:
+    :param ppifg:
 
+    :return: data truncated (both start and end) to an integer number of interferograms and reshaped.
+    because it might be important to know, I also return the number of points I truncated
+    from the start of the data
+    """
 
-def _find_npts_from_guess(dat, guess):
-    N = len(dat[guess // 2:]) // guess
-    arr = dat[guess // 2:][:N * guess]
-    arr = arr.reshape(N, guess)
-    ind = np.argmax(arr, axis=1)
-    xind = np.arange(len(ind)) * guess + ind
-    N = np.mean(np.diff(xind))
-    return int(np.round(N)), N
+    # skip to the max of the first interferogram, and then NEGATIVE or POSITIVE ppifg // 2 after that
+    start = data[:ppifg]
+    ind = np.argmax(abs(start))
+    if ind > ppifg // 2:
+        ind -= ppifg // 2
+    elif ind < ppifg // 2:
+        ind += ppifg // 2
 
-
-def _find_npts(dat, level_percent=40):
-    guess, level = _get_initial_npts_guess(dat, level_percent)
-    return [*_find_npts_from_guess(dat, guess), level]
-
-
-# def find_npts(dat, level_percent=40):
-#     N, N_float, level = _find_npts(dat, level_percent)
-#     return _find_npts(dat[N // 2:-N // 2], level_percent)
+    data = data[ind:]
+    N = len(data) // ppifg
+    data = data[:N * ppifg]
+    N = len(data) // ppifg
+    data = data.reshape(N, ppifg)
+    return data, ind
 
 
 def plot_section(arr, npts, npts_plot):
@@ -49,15 +48,9 @@ def find_npts(dat, level_percent=40):
         trial.append(ind[h:i])
         h = i
 
-    # plt.figure()
-    # plt.plot(dat)
-    # [plt.plot(i, dat[i], 'o') for i in trial]
-
     ind_maxes = []
     for i in trial:
         ind_maxes.append(i[np.argmax(dat[i])])
-
-    # plt.plot(ind_maxes, dat[ind_maxes], 'ko')
 
     mean = np.mean(np.diff(ind_maxes))
 

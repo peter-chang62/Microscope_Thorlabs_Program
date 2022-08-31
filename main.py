@@ -3,10 +3,37 @@ from Error_Window import Ui_Form
 from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
 import MotorClassFromAptProtocolConnor as apt
+import ProcessingFunctions as pf
+import numpy as np
 import sys
 import RUN_DataStreamApplication as dsa
+import mkl_fft
 
 edge_limit_buffer_mm = 0.0  # 1 um
+
+
+def fft(x, axis=None):
+    """
+    calculates the 1D fft of the numpy array x
+    if x is not 1D you need to specify the axis
+    """
+
+    if axis is None:
+        return np.fft.fftshift(mkl_fft.fft(np.fft.ifftshift(x)))
+    else:
+        return np.fft.fftshift(mkl_fft.fft(np.fft.ifftshift(x, axes=axis), axis=axis), axes=axis)
+
+
+def ifft(x, axis=None):
+    """
+    calculates the 1D ifft of the numpy array x
+    if x is not 1D you need to specify the axis
+    """
+
+    if axis is None:
+        return np.fft.fftshift(mkl_fft.ifft(np.fft.ifftshift(x)))
+    else:
+        return np.fft.fftshift(mkl_fft.ifft(np.fft.ifftshift(x, axes=axis), axis=axis), axes=axis)
 
 
 def dist_um_to_T_fs(value_um):
@@ -176,11 +203,17 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self._card_index = 1
         self.active_stream = self.stream1
 
+        self.lcd_cnt_update_current_pos_um_1.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_cnt_update_current_pos_um_2.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_cnt_update_current_pos_fs_1.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_cnt_update_current_pos_fs_2.setSegmentStyle(qt.QLCDNumber.Flat)
+
         self.connect()
 
     def connect(self):
         self.radbtn_card1.clicked.connect(self.select_card_index)
         self.radbtn_card2.clicked.connect(self.select_card_index)
+        self.btn_acquire_pt_scn.clicked.connect(self.acquire_and_get_spectrum)
 
     def select_card_index(self):
         if self.radbtn_card1.isChecked():
@@ -191,6 +224,24 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             self._card_index = 2
             self.active_stream = self.stream2
             print("selecting card 2")
+
+    def acquire_and_get_spectrum(self):
+        # acquire
+        self.active_stream.acquire()
+
+        x = self.active_stream.single_acquire_array
+        x = x[self.active_stream.ppifg // 2:]  # assuming self-triggered
+        x = pf.adjust_data_and_reshape(x, self.stream1.ppifg)  # didn't acquire integer x ppifg NPTS
+
+        ind_ref = np.argmax(x[0])  # maximum of first interferogram
+        ind_diff = ind_ref - np.argmax(x, axis=1)
+        r, c = np.ogrid[:x.shape[0], :x.shape[1]]
+        c_shift = c + (ind_diff - len(c.flatten()))[:, np.newaxis]
+        x = x[r, c_shift]
+        x = np.mean(x, 0)
+        ft = fft(x).__abs__()
+        print("hello world")
+        return ft
 
 
 if __name__ == '__main__':
