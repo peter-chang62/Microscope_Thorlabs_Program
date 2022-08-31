@@ -1,8 +1,8 @@
 import PyQt5.QtWidgets as qt
 from Error_Window import Ui_Form
-import utilities as util
 from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
+import MotorClassFromAptProtocolConnor as apt
 import sys
 
 edge_limit_buffer_mm = 0.0  # 1 um
@@ -52,7 +52,7 @@ class MotorInterface:
     utilities.py """
 
     def __init__(self, motor):
-        motor: util.Motor
+        motor: apt.KDC101
         self.motor = motor
 
         self.T0_um = 0  # T0 position of the motor in micron
@@ -64,12 +64,7 @@ class MotorInterface:
 
     @property
     def pos_um(self):
-        return self.motor.position_mm * 1e3
-
-    @property
-    def pos_fs(self):
-        # pos_fs is taken from pos_um and T0_um
-        return dist_um_to_T_fs(self.pos_um - self.T0_um)
+        return self.motor.position * 1e3
 
     @pos_um.setter
     def pos_um(self, value_um):
@@ -77,11 +72,51 @@ class MotorInterface:
         # position in mm
         self.motor.position_mm = value_um * 1e-3
 
+    @property
+    def pos_fs(self):
+        # pos_fs is taken from pos_um and T0_um
+        return dist_um_to_T_fs(self.pos_um - self.T0_um)
+
     @pos_fs.setter
     def pos_fs(self, value_fs):
         # pos_fs is taken from pos_um, so just set pos_um
         # setting pos_um moves the motor
         self.pos_um = T_fs_to_dist_um(value_fs) + self.T0_um
+
+    @property
+    def trigger_on(self):
+        return self.motor.trigger_on
+
+    @trigger_on.setter
+    def trigger_on(self, flag):
+        self.motor.trigger_on = flag  # there is already an assert statement to check if flag is a bool in motor
+
+    @property
+    def is_in_motion(self):
+        return self.motor.is_in_motion
+
+    @property
+    def step_um(self):
+        return self.motor.step_mm * 1e3
+
+    @step_um.setter
+    def step_um(self, val_um):
+        val_mm = val_um * 1e-3
+        self.motor.step_mm = val_mm
+
+    @property
+    def pulse_width_ms(self):
+        return self.motor.pulse_width_ms
+
+    @pulse_width_ms.setter
+    def pulse_width_ms(self, width_ms):
+        self.motor.pulse_width_ms = width_ms
+
+    def stop(self):
+        self.motor.stop_profiled()
+
+    def home(self):
+        return self.motor.move_home()
 
     def move_by_fs(self, value_fs):
         # obtain the distance to move in micron and meters
@@ -99,8 +134,8 @@ class MotorInterface:
 
     def value_exceeds_limits(self, value_um):
         predicted_pos_um = value_um + self.pos_um
-        max_limit_um = self.motor.max_pos_mm * 1e3
-        min_limit_um = self.motor.min_pos_mm * 1e3
+        max_limit_um = self.motor.get_stage_axis_info()[0] * 1e3
+        min_limit_um = self.motor.get_stage_axis_info()[1] * 1e3
         buffer_um = self._safety_buffer_mm * 1e3
 
         if (predicted_pos_um < min_limit_um + buffer_um) or (
