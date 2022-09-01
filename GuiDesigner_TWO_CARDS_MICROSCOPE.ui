@@ -1411,7 +1411,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QLCDNumber" name="lcd_cnt_update_current_pos_um_1"/>
+                     <widget class="QLCDNumber" name="lcd_ptscn_pos_um_1"/>
                     </item>
                    </layout>
                   </item>
@@ -1455,7 +1455,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QLCDNumber" name="lcd_cnt_update_current_pos_fs_1"/>
+                     <widget class="QLCDNumber" name="lcd_ptscn_pos_fs_1"/>
                     </item>
                    </layout>
                   </item>
@@ -1512,7 +1512,7 @@
                  </layout>
                 </item>
                 <item>
-                 <widget class="QRadioButton" name="radioButton_3">
+                 <widget class="QRadioButton" name="radbtn_trigon_1">
                   <property name="text">
                    <string>Trigger On</string>
                   </property>
@@ -1740,7 +1740,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QLCDNumber" name="lcd_cnt_update_current_pos_um_2"/>
+                     <widget class="QLCDNumber" name="lcd_ptscn_pos_um_2"/>
                     </item>
                    </layout>
                   </item>
@@ -1784,7 +1784,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QLCDNumber" name="lcd_cnt_update_current_pos_fs_2"/>
+                     <widget class="QLCDNumber" name="lcd_ptscn_pos_fs_2"/>
                     </item>
                    </layout>
                   </item>
@@ -1841,7 +1841,7 @@
                  </layout>
                 </item>
                 <item>
-                 <widget class="QRadioButton" name="radioButton_4">
+                 <widget class="QRadioButton" name="radbtn_trigon_2">
                   <property name="text">
                    <string>Trigger On</string>
                   </property>

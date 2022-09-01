@@ -1,3 +1,4 @@
+import threading
 import scipy.constants as sc
 import PyQt5.QtWidgets as qt
 from Error_Window import Ui_Form
@@ -13,6 +14,8 @@ import PlotWidgets as pw
 import PyQt5.QtGui as qtg
 
 edge_limit_buffer_mm = 0.0  # 1 um
+COM1 = "COM3"
+COM2 = "COM6"
 
 
 def fft(x, axis=None):
@@ -210,13 +213,17 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.Nyquist_Window = 1
         self.frep = 1e9
 
-        self.lcd_cnt_update_current_pos_um_1.setSegmentStyle(qt.QLCDNumber.Flat)
-        self.lcd_cnt_update_current_pos_um_2.setSegmentStyle(qt.QLCDNumber.Flat)
-        self.lcd_cnt_update_current_pos_fs_1.setSegmentStyle(qt.QLCDNumber.Flat)
-        self.lcd_cnt_update_current_pos_fs_2.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_ptscn_pos_um_1.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_ptscn_pos_um_2.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_ptscn_pos_fs_1.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_ptscn_pos_fs_2.setSegmentStyle(qt.QLCDNumber.Flat)
 
         self.le_nyq_window.setValidator(qtg.QIntValidator())
         self.le_frep.setValidator(qtg.QDoubleValidator())
+        self.le_pos_um_1.setValidator(qtg.QDoubleValidator())
+        self.le_pos_um_2.setValidator(qtg.QDoubleValidator())
+        self.le_pos_fs_1.setValidator(qtg.QDoubleValidator())
+        self.le_pos_fs_2.setValidator(qtg.QDoubleValidator())
 
         self.plot_ptscn = pw.PlotWindow(self.le_ptscn_xmin,
                                         self.le_ptscn_xmax,
@@ -225,21 +232,65 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
                                         self.gv_ptscn)
         self.curve_ptscn = pw.create_curve()
         self.plot_ptscn.plotwidget.addItem(self.curve_ptscn)
+
+        self.stage_1 = MotorInterface(apt.KDC101(COM1))
+        self.stage_2 = MotorInterface(apt.KDC101(COM2))
+        self.pos_um_1 = None
+        self.pos_um_2 = None
+        self.update_le_pos_1(self.stage_1.pos_um)
+        self.update_le_pos_2(self.stage_2.pos_um)
+
+        self.motor_moving = threading.Event()
+        self.target_um_1 = None
+        self.target_um_2 = None
+
         self.connect()
 
+    @property
+    def target_fs_1(self):
+        dx = self.target_um_1 - self.stage_1.T0_um
+        return dist_um_to_T_fs(dx)
+
+    @target_fs_1.setter
+    def target_fs_1(self, val):
+        dx = T_fs_to_dist_um(val)
+        x = self.stage_1.T0_um + dx
+        self.target_um_1 = x
+
+    @property
+    def target_fs_2(self):
+        dx = self.target_um_2 - self.stage_2.T0_um
+        return dist_um_to_T_fs(dx)
+
+    @target_fs_2.setter
+    def target_fs_2(self, val):
+        dx = T_fs_to_dist_um(val)
+        x = self.stage_2.T0_um + dx
+        self.target_um_2 = x
+
     def connect(self):
-        self.radbtn_card1.clicked.connect(self.select_card_index)
-        self.radbtn_card2.clicked.connect(self.select_card_index)
+        self.radbtn_card1.clicked.connect(self.select_card_1)
+        self.radbtn_card2.clicked.connect(self.select_card_2)
+        self.radbtn_trigon_1.clicked.connect(self.update_trigon_1)
+        self.radbtn_trigon_2.clicked.connect(self.update_trigon_2)
         self.btn_acquire_pt_scn.clicked.connect(self.acquire_and_get_spectrum)
         self.le_nyq_window.editingFinished.connect(self.setNyquistWindow)
         self.le_frep.editingFinished.connect(self.setFrep)
+        self.le_pos_um_1.editingFinished.connect(self.update_target_um_1)
+        self.le_pos_um_2.editingFinished.connect(self.update_target_um_2)
+        self.le_pos_fs_1.editingFinished.connect(self.update_target_fs_1)
+        self.le_pos_fs_2.editingFinished.connect(self.update_target_fs_2)
+        self.btn_set_T0_1.clicked.connect(self.set_T0_1)
+        self.btn_set_T0_2.clicked.connect(self.set_T0_2)
 
-    def select_card_index(self):
-        if self.radbtn_card1.isChecked():
+    def select_card_1(self, flag):
+        if flag:
             self._card_index = 1
             self.active_stream = self.stream1
             print("selecting card 1")
-        elif self.radbtn_card2.isChecked():
+
+    def select_card_2(self, flag):
+        if flag:
             self._card_index = 2
             self.active_stream = self.stream2
             print("selecting card 2")
@@ -261,6 +312,98 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
         else:
             self.frep = frep
+
+    def update_le_pos_1(self, pos_um):
+        self.pos_um_1 = pos_um
+        pos_fs = dist_um_to_T_fs(pos_um - self.stage_1.T0_um)
+        self.lcd_ptscn_pos_um_1.display('%.3f' % pos_um)
+        self.lcd_ptscn_pos_fs_1.display('%.3f' % pos_fs)
+
+    def update_le_pos_2(self, pos_um):
+        self.pos_um_2 = pos_um
+        pos_fs = dist_um_to_T_fs(pos_um - self.stage_2.T0_um)
+        self.lcd_ptscn_pos_um_2.display('%.3f' % pos_um)
+        self.lcd_ptscn_pos_fs_2.display('%.3f' % pos_fs)
+
+    def update_target_um_1(self):
+        target_um = float(self.le_pos_um_1.text())
+        upper_limit = self.stage_1.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_um_1 = target_um
+
+        self.le_pos_fs_1.setText('%.3f' % self.target_fs_1)
+
+    def update_target_fs_1(self):
+        target_fs = float(self.le_pos_fs_1.text())
+        target_um = T_fs_to_dist_um(target_fs) + self.stage_1.T0_um
+        upper_limit = self.stage_1.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_um_1 = target_um
+
+        self.le_pos_um_1.setText('%.3f' % self.target_um_1)
+
+    def update_target_um_2(self):
+        target_um = float(self.le_pos_um_2.text())
+        upper_limit = self.stage_2.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_um_2 = target_um
+
+        self.le_pos_fs_2.setText('%.3f' % self.target_fs_2)
+
+    def update_target_fs_2(self):
+        target_fs = float(self.le_pos_fs_2.text())
+        target_um = T_fs_to_dist_um(target_fs) + self.stage_2.T0_um
+        upper_limit = self.stage_2.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_um_2 = target_um
+
+        self.le_pos_um_2.setText('%.3f' % self.target_um_2)
+
+    def set_T0_1(self):
+        print("setting T0 for stage 1")
+
+    def set_T0_2(self):
+        print("setting T0 for stage 2")
+
+    def update_trigon_1(self, flag):
+        if flag:
+            print("turning ON trigger for stage 1")
+            self.stage_1.trigger_on = True
+        else:
+            print("turning OFF trigger for stage 1")
+            self.stage_1.trigger_on = False
+
+    def update_trigon_2(self, flag):
+        if flag:
+            print("turning ON trigger for stage 2")
+            self.stage_2.trigger_on = True
+        else:
+            print("turning OFF trigger for stage 2")
+            self.stage_2.trigger_on = False
 
     def acquire_and_get_spectrum(self):
         # acquire
@@ -309,6 +452,36 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         lims_ft = np.array([0, max(ft)])
         self.plot_ptscn.format_to_xy_data(lims_wl, lims_ft)
         self.curve_ptscn.setData(wl, ft)
+
+
+# %%____________________________________________________________________________________________________________________
+# Runnable classes
+# %%____________________________________________________________________________________________________________________
+class UpdateMotorThread:
+    def __init__(self, motor_interface, threading_event):
+        motor_interface: MotorInterface
+        self.motor_interface = motor_interface
+        self.signal = Signal()
+        threading_event: threading.Event
+        self.event = threading_event
+        self.stop_flag = threading.Event()
+
+    def stop(self):
+        self.stop_flag.set()
+
+    def run(self):
+        while self.motor_interface.is_in_motion:
+            if self.stop_flag.is_set():
+                self.motor_interface.stop()
+
+            pos = self.motor_interface.pos_um
+            self.signal.progress.emit(pos)
+
+        self.event.clear()
+
+        pos = self.motor_interface.pos_um
+        self.signal.progress.emit(pos)
+        self.signal.finished.emit(None)
 
 
 if __name__ == '__main__':
