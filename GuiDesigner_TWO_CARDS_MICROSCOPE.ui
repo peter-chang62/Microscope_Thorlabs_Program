@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1708</width>
-    <height>876</height>
+    <width>1695</width>
+    <height>855</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1130,8 +1130,8 @@
        <attribute name="title">
         <string>Point Scanning</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_24">
-        <item>
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="0" column="0">
          <widget class="QGroupBox" name="groupBox">
           <property name="maximumSize">
            <size>
@@ -1909,6 +1909,102 @@
             </layout>
            </item>
            <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_24">
+             <item>
+              <spacer name="horizontalSpacer_25">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <layout class="QFormLayout" name="formLayout_5">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_16">
+                 <property name="text">
+                  <string>Nyquist Window</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="le_nyq_window">
+                 <property name="text">
+                  <string>1</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_26">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_25">
+             <item>
+              <spacer name="horizontalSpacer_27">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <layout class="QFormLayout" name="formLayout_6">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_17">
+                 <property name="text">
+                  <string>rep rate</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="le_frep">
+                 <property name="text">
+                  <string>1e9</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_28">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
             <spacer name="verticalSpacer_13">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -1924,7 +2020,7 @@
           </layout>
          </widget>
         </item>
-        <item>
+        <item row="0" column="1">
          <widget class="QGroupBox" name="groupBox_19">
           <property name="minimumSize">
            <size>
@@ -1953,7 +2049,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="le_cont_upd_ymax_2">
+               <widget class="QLineEdit" name="le_ptscn_ymax">
                 <property name="maximumSize">
                  <size>
                   <width>91</width>
@@ -1976,7 +2072,7 @@
                </spacer>
               </item>
               <item>
-               <widget class="QLineEdit" name="le_cont_upd_ymin_2">
+               <widget class="QLineEdit" name="le_ptscn_ymin">
                 <property name="maximumSize">
                  <size>
                   <width>91</width>
@@ -1998,7 +2094,7 @@
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_33">
              <item>
-              <widget class="PlotWidget" name="gv_cont_upd_spec_2">
+              <widget class="PlotWidget" name="gv_ptscn">
                <property name="minimumSize">
                 <size>
                  <width>620</width>
@@ -2010,7 +2106,7 @@
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_50">
                <item>
-                <widget class="QLineEdit" name="le_cont_upd_xmin_2">
+                <widget class="QLineEdit" name="le_ptscn_xmin">
                  <property name="maximumSize">
                   <size>
                    <width>91</width>
@@ -2047,7 +2143,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="le_cont_upd_xmax_2">
+                <widget class="QLineEdit" name="le_ptscn_xmax">
                  <property name="maximumSize">
                   <size>
                    <width>91</width>

@@ -1,3 +1,4 @@
+import scipy.constants as sc
 import PyQt5.QtWidgets as qt
 from Error_Window import Ui_Form
 from scipy.constants import c as c_mks
@@ -8,6 +9,8 @@ import numpy as np
 import sys
 import RUN_DataStreamApplication as dsa
 import mkl_fft
+import PlotWidgets as pw
+import PyQt5.QtGui as qtg
 
 edge_limit_buffer_mm = 0.0  # 1 um
 
@@ -200,20 +203,36 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self.show()
 
+        self.ErrorWindow = ErrorWindow()
+
         self._card_index = 1
         self.active_stream = self.stream1
+        self.Nyquist_Window = 1
+        self.frep = 1e9
 
         self.lcd_cnt_update_current_pos_um_1.setSegmentStyle(qt.QLCDNumber.Flat)
         self.lcd_cnt_update_current_pos_um_2.setSegmentStyle(qt.QLCDNumber.Flat)
         self.lcd_cnt_update_current_pos_fs_1.setSegmentStyle(qt.QLCDNumber.Flat)
         self.lcd_cnt_update_current_pos_fs_2.setSegmentStyle(qt.QLCDNumber.Flat)
 
+        self.le_nyq_window.setValidator(qtg.QIntValidator())
+        self.le_frep.setValidator(qtg.QDoubleValidator())
+
+        self.plot_ptscn = pw.PlotWindow(self.le_ptscn_xmin,
+                                        self.le_ptscn_xmax,
+                                        self.le_ptscn_ymin,
+                                        self.le_ptscn_ymax,
+                                        self.gv_ptscn)
+        self.curve_ptscn = pw.create_curve()
+        self.plot_ptscn.plotwidget.addItem(self.curve_ptscn)
         self.connect()
 
     def connect(self):
         self.radbtn_card1.clicked.connect(self.select_card_index)
         self.radbtn_card2.clicked.connect(self.select_card_index)
         self.btn_acquire_pt_scn.clicked.connect(self.acquire_and_get_spectrum)
+        self.le_nyq_window.editingFinished.connect(self.setNyquistWindow)
+        self.le_frep.editingFinished.connect(self.setFrep)
 
     def select_card_index(self):
         if self.radbtn_card1.isChecked():
@@ -225,23 +244,71 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             self.active_stream = self.stream2
             print("selecting card 2")
 
+    def setNyquistWindow(self):
+        nyq_window = int(self.le_nyq_window.text())
+        if nyq_window < 1:
+            raise_error(self.ErrorWindow, "nyquist window must be >= 1")
+            self.le_nyq_window.setText(str(int(self.Nyquist_Window)))
+            return
+        else:
+            self.Nyquist_Window = nyq_window
+
+    def setFrep(self):
+        frep = float(self.le_frep.text())
+        if frep <= 0:
+            raise_error(self.ErrorWindow, "frep must be > 0")
+            self.le_frep.setText(str(float(self.frep)))
+            return
+        else:
+            self.frep = frep
+
     def acquire_and_get_spectrum(self):
         # acquire
-        self.active_stream.acquire()
+        try:
+            self.active_stream.acquire()
+        except:
+            raise_error(self.ErrorWindow, "FAILED TO ACQUIRE :(")
+            return  # exit
+
+        if self.active_stream.ppifg is None:
+            raise_error(self.ErrorWindow, "ESTABLISH A PPIFG IN THE OSCILLOSCOPE TAB FIRST")
+            return  # exit
 
         x = self.active_stream.single_acquire_array
-        x = x[self.active_stream.ppifg // 2:]  # assuming self-triggered
-        x = pf.adjust_data_and_reshape(x, self.stream1.ppifg)  # didn't acquire integer x ppifg NPTS
+        x = x[self.active_stream.ppifg // 2:]  # assuming self-triggered : throw out first PPIFG // 2
+        x = pf.adjust_data_and_reshape(x, self.stream1.ppifg)  # didn't acquire NPTS = integer x ppifg
+
+        # ______________________________________________________________________________________________________________
+        # below I just shift correct by overlapping the maxima of all the interferograms
+        # ______________________________________________________________________________________________________________
 
         ind_ref = np.argmax(x[0])  # maximum of first interferogram
-        ind_diff = ind_ref - np.argmax(x, axis=1)
+        ind_diff = ind_ref - np.argmax(x, axis=1)  # maximum of first - maximum of all the rest
         r, c = np.ogrid[:x.shape[0], :x.shape[1]]
         c_shift = c + (ind_diff - len(c.flatten()))[:, np.newaxis]
         x = x[r, c_shift]
         x = np.mean(x, 0)
-        ft = fft(x).__abs__()
-        print("hello world")
-        return ft
+        ft = fft(x).__abs__()[self.active_stream.ppifg // 2:]  # center -> end : pick the positive frequency side
+
+        # ______________________________________________________________________________________________________________
+        # calculate the wavelength axis
+        # ______________________________________________________________________________________________________________
+        center = self.active_stream.ppifg // 2
+        Nyq_Freq = center * self.frep
+        translation = (self.Nyquist_Window - 1) * Nyq_Freq
+        nu = np.linspace(0, Nyq_Freq, center) + translation
+        wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
+
+        if self.Nyquist_Window % 2 == 0:
+            ft = ft[::-1]
+
+        # ______________________________________________________________________________________________________________
+        # update the plot
+        # ______________________________________________________________________________________________________________
+        lims_wl = np.array([min(wl), max(wl)])
+        lims_ft = np.array([0, max(ft)])
+        self.plot_ptscn.format_to_xy_data(lims_wl, lims_ft)
+        self.curve_ptscn.setData(wl, ft)
 
 
 if __name__ == '__main__':
