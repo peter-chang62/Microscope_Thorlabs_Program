@@ -605,7 +605,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         c_shift = c + (ind_diff - len(c.flatten()))[:, np.newaxis]
         x = x[r, c_shift]
         x = np.mean(x, 0)
-        ft = fft(x).__abs__()[self.active_stream.ppifg // 2:]  # center -> end : pick the positive frequency side
+        ft = fft(x).__abs__()
 
         # ______________________________________________________________________________________________________________
         # calculate the wavelength axis
@@ -617,7 +617,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
 
         if self.Nyquist_Window % 2 == 0:
-            ft = ft[::-1]
+            ft = ft[:center]  # negative frequency side
+        else:
+            ft = ft[center:]  # positive frequency side
 
         # ______________________________________________________________________________________________________________
         # update the plot
@@ -626,6 +628,8 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         lims_ft = np.array([0, max(ft)])
         self.plot_ptscn.format_to_xy_data(lims_wl, lims_ft)
         self.curve_ptscn.setData(wl, ft)
+
+        return wl, ft
 
     def step_right_1(self, *args, step_um=None):
         if self.motor_moving_1.is_set():
@@ -726,6 +730,41 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         thread = threading.Thread(target=self.update_motor_thread_2.run)
         self.motor_moving_2.set()
         thread.start()
+
+    # __________________________________________________________________________________________________________________
+    # Below we do all scans without trigger. This is significantly easier than continuous move because no streaming is
+    # necessary
+    # __________________________________________________________________________________________________________________
+    def line_scan_notrigger(self, x1, y1, x2, y2, step_um):
+        # treat motor 1 as x and motor 2 as y
+        self.move_to_pos_1(x1)  # move to start position
+        self.move_to_pos_2(y1)
+
+        wl, ft = self.acquire_and_get_spectrum()
+        FT = [ft]
+        X = [x1]
+        Y = [y1]
+
+        dx = x2 - x1
+        dy = y2 - y1
+        r = np.sqrt(dx ** 2 + dy ** 2)
+        rx = dx / r  # rhat = (rx, ry), note that rx and / or ry can be negative
+        ry = dy / r
+        step_x = step_um * rx  # step_x, step_y can be negative -> we will only call step_right in the loop below!
+        step_y = step_um * ry
+        npts = np.ceil(r / step_um)
+
+        for n in range(npts):
+            self.step_right_1(step_x)
+            self.step_right_2(step_y)
+
+            X.append(self.stage_1.pos_um)
+            Y.append(self.stage_2.pos_um)
+            FT.append(self.acquire_and_get_spectrum()[1])
+
+            print(X[n], Y[n], f'acquired point {n} of {npts}')
+
+        return X, Y, wl, FT
 
 
 # %%____________________________________________________________________________________________________________________

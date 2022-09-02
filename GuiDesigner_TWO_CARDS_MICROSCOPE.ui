@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -2161,63 +2161,606 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_5">
-       <attribute name="title">
-        <string>2D Scanning</string>
-       </attribute>
-      </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
         <string>Line Scanning</string>
        </attribute>
-       <widget class="QLabel" name="label_30">
-        <property name="geometry">
-         <rect>
-          <x>9</x>
-          <y>9</y>
-          <width>45</width>
-          <height>16</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Spectrum</string>
-        </property>
-       </widget>
-       <widget class="PlotWidget" name="graphicsView_5">
-        <property name="geometry">
-         <rect>
-          <x>9</x>
-          <y>28</y>
-          <width>256</width>
-          <height>192</height>
-         </rect>
-        </property>
-       </widget>
-       <widget class="QComboBox" name="comboBox">
-        <property name="geometry">
-         <rect>
-          <x>300</x>
-          <y>40</y>
-          <width>192</width>
-          <height>20</height>
-         </rect>
-        </property>
-        <item>
-         <property name="text">
-          <string>Integrated area frequency domain</string>
-         </property>
+       <layout class="QGridLayout" name="gridLayout_8">
+        <item row="0" column="0">
+         <widget class="QGroupBox" name="groupBox">
+          <property name="maximumSize">
+           <size>
+            <width>430</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_20">
+           <item>
+            <spacer name="verticalSpacer_6">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_25">
+             <property name="maximumSize">
+              <size>
+               <width>410</width>
+               <height>415</height>
+              </size>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_19">
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_28">
+                <item>
+                 <spacer name="horizontalSpacer_32">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="cbx_lscn">
+                  <item>
+                   <property name="text">
+                    <string>Integrated area frequency domain</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Vpp time domain</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Peak frequency domain</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_31">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_31">
+                <item>
+                 <layout class="QVBoxLayout" name="verticalLayout_17">
+                  <item>
+                   <widget class="QLabel" name="label_24">
+                    <property name="text">
+                     <string>Start Pos Stage 1</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QFormLayout" name="formLayout_22">
+                    <item row="0" column="1">
+                     <widget class="QLineEdit" name="le_lscn_start_um_1"/>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_73">
+                      <property name="text">
+                       <string>position (fs)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QLineEdit" name="le_lscn_start_fs_1"/>
+                    </item>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_74">
+                      <property name="text">
+                       <string>position (um)</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <layout class="QVBoxLayout" name="verticalLayout_18">
+                  <item>
+                   <widget class="QLabel" name="label_25">
+                    <property name="text">
+                     <string>Start Pos Stage 2</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QFormLayout" name="formLayout_23">
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_75">
+                      <property name="text">
+                       <string>position (um)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLineEdit" name="le_lscn_start_um_2"/>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_76">
+                      <property name="text">
+                       <string>position (fs)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QLineEdit" name="le_lscn_start_fs_2"/>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_30">
+                <item>
+                 <layout class="QVBoxLayout" name="verticalLayout_15">
+                  <item>
+                   <widget class="QLabel" name="label_22">
+                    <property name="text">
+                     <string>End Pos Stage 1</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QFormLayout" name="formLayout_20">
+                    <item row="0" column="1">
+                     <widget class="QLineEdit" name="le_lscn_end_um_1"/>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_70">
+                      <property name="text">
+                       <string>position (fs)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QLineEdit" name="le_lscn_end_fs_1"/>
+                    </item>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_69">
+                      <property name="text">
+                       <string>position (um)</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <layout class="QVBoxLayout" name="verticalLayout_16">
+                  <item>
+                   <widget class="QLabel" name="label_23">
+                    <property name="text">
+                     <string>End Pos Stage 2</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QFormLayout" name="formLayout_21">
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_71">
+                      <property name="text">
+                       <string>position (um)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLineEdit" name="le_lscn_end_um_2"/>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_72">
+                      <property name="text">
+                       <string>position (fs)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QLineEdit" name="le_lscn_end_fs_2"/>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_26">
+                <item>
+                 <spacer name="horizontalSpacer_29">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <layout class="QFormLayout" name="formLayout_15">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_57">
+                    <property name="text">
+                     <string>step size (um)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="le_scn_step_size_um">
+                    <property name="maximumSize">
+                     <size>
+                      <width>50</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>1</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_58">
+                    <property name="text">
+                     <string>step size (fs)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="le_scn_step_size_fs">
+                    <property name="maximumSize">
+                     <size>
+                      <width>50</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_30">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_59">
+                <item>
+                 <spacer name="horizontalSpacer_67">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btn_lscn_start">
+                  <property name="text">
+                   <string>start scan</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_68">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_27">
+                <item>
+                 <spacer name="horizontalSpacer_71">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <layout class="QGridLayout" name="gridLayout_7">
+                  <item row="0" column="0">
+                   <layout class="QVBoxLayout" name="verticalLayout_42">
+                    <item>
+                     <widget class="QLabel" name="label_61">
+                      <property name="text">
+                       <string>Stage 1 Position (um)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLCDNumber" name="lcd_lscn_pos_um_1"/>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="0" column="1">
+                   <layout class="QVBoxLayout" name="verticalLayout_47">
+                    <item>
+                     <widget class="QLabel" name="label_64">
+                      <property name="text">
+                       <string>Stage 2 Position (um)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLCDNumber" name="lcd_lscn_pos_um_2"/>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="1" column="0">
+                   <layout class="QVBoxLayout" name="verticalLayout_43">
+                    <item>
+                     <widget class="QLabel" name="label_62">
+                      <property name="text">
+                       <string>Stage 1 Position (fs)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLCDNumber" name="lcd_lscn_pos_fs_1"/>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="1" column="1">
+                   <layout class="QVBoxLayout" name="verticalLayout_48">
+                    <item>
+                     <widget class="QLabel" name="label_77">
+                      <property name="text">
+                       <string>Stage 2 Position (fs)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLCDNumber" name="lcd_lscn_pos_fs_2"/>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_74">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="radbtn_lscn_trigon">
+                <property name="text">
+                 <string>Trigger On</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_7">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
         </item>
-        <item>
-         <property name="text">
-          <string>Vpp time domain</string>
-         </property>
+        <item row="0" column="1">
+         <widget class="QGroupBox" name="groupBox_24">
+          <property name="minimumSize">
+           <size>
+            <width>741</width>
+            <height>604</height>
+           </size>
+          </property>
+          <property name="title">
+           <string>Spectrum</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_56">
+           <item>
+            <widget class="QGroupBox" name="groupBox_11">
+             <property name="maximumSize">
+              <size>
+               <width>95</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_38">
+              <item>
+               <widget class="QLabel" name="label_53">
+                <property name="text">
+                 <string>y max</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="le_lscn_ymax">
+                <property name="maximumSize">
+                 <size>
+                  <width>91</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="verticalSpacer_15">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="le_lscn_ymin">
+                <property name="maximumSize">
+                 <size>
+                  <width>91</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_54">
+                <property name="text">
+                 <string>y min</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_39">
+             <item>
+              <widget class="PlotWidget" name="gv_lscn">
+               <property name="minimumSize">
+                <size>
+                 <width>620</width>
+                 <height>439</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_57">
+               <item>
+                <widget class="QLineEdit" name="le_lscn_xmin">
+                 <property name="maximumSize">
+                  <size>
+                   <width>91</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_55">
+                 <property name="text">
+                  <string>x min</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_66">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_56">
+                 <property name="text">
+                  <string>x max</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="le_lscn_xmax">
+                 <property name="maximumSize">
+                  <size>
+                   <width>91</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
         </item>
-        <item>
-         <property name="text">
-          <string>Peak frequency domain</string>
-         </property>
-        </item>
-       </widget>
+       </layout>
       </widget>
      </widget>
     </item>
