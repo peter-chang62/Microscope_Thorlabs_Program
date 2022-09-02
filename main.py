@@ -229,6 +229,10 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.le_pos_um_2.setValidator(qtg.QDoubleValidator())
         self.le_pos_fs_1.setValidator(qtg.QDoubleValidator())
         self.le_pos_fs_2.setValidator(qtg.QDoubleValidator())
+        self.le_step_size_um_1.setValidator(qtg.QDoubleValidator())
+        self.le_step_size_um_2.setValidator(qtg.QDoubleValidator())
+        self.le_step_size_fs_1.setValidator(qtg.QDoubleValidator())
+        self.le_step_size_fs_2.setValidator(qtg.QDoubleValidator())
 
         self.plot_ptscn = pw.PlotWindow(self.le_ptscn_xmin,
                                         self.le_ptscn_xmax,
@@ -251,11 +255,29 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_2 = threading.Event()
         self.target_um_1 = None
         self.target_um_2 = None
+        self.step_size_um_1 = 1
+        self.step_size_um_2 = 1
 
         self.update_motor_thread_1 = None
         self.update_motor_thread_2 = None
 
         self.connect()
+
+    @property
+    def step_size_fs_1(self):
+        return dist_um_to_T_fs(self.step_size_um_1)
+
+    @step_size_fs_1.setter
+    def step_size_fs_1(self, val):
+        self.step_size_um_1 = T_fs_to_dist_um(val)
+
+    @property
+    def step_size_fs_2(self):
+        return dist_um_to_T_fs(self.step_size_um_2)
+
+    @step_size_fs_2.setter
+    def step_size_fs_2(self, val):
+        self.step_size_um_2 = T_fs_to_dist_um(val)
 
     @property
     def target_fs_1(self):
@@ -284,20 +306,29 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.radbtn_card2.clicked.connect(self.select_card_2)
         self.radbtn_trigon_1.clicked.connect(self.update_trigon_1)
         self.radbtn_trigon_2.clicked.connect(self.update_trigon_2)
-        self.btn_acquire_pt_scn.clicked.connect(self.acquire_and_get_spectrum)
+
         self.le_nyq_window.editingFinished.connect(self.setNyquistWindow)
         self.le_frep.editingFinished.connect(self.setFrep)
         self.le_pos_um_1.editingFinished.connect(self.update_target_um_1)
         self.le_pos_um_2.editingFinished.connect(self.update_target_um_2)
         self.le_pos_fs_1.editingFinished.connect(self.update_target_fs_1)
         self.le_pos_fs_2.editingFinished.connect(self.update_target_fs_2)
+        self.le_step_size_um_1.editingFinished.connect(self.update_stepsize_um_1)
+        self.le_step_size_fs_1.editingFinished.connect(self.update_stepsize_fs_1)
+        self.le_step_size_um_2.editingFinished.connect(self.update_stepsize_um_2)
+        self.le_step_size_fs_2.editingFinished.connect(self.update_stepsize_fs_2)
+
+        self.btn_acquire_pt_scn.clicked.connect(self.acquire_and_get_spectrum)
         self.btn_set_T0_1.clicked.connect(self.set_T0_1)
         self.btn_set_T0_2.clicked.connect(self.set_T0_2)
-
         self.btn_move_to_pos_1.clicked.connect(self.move_to_pos_1)
         self.btn_move_to_pos_2.clicked.connect(self.move_to_pos_2)
         self.btn_home_stage_1.clicked.connect(self.home_stage_1)
         self.btn_home_stage_2.clicked.connect(self.home_stage_2)
+        self.btn_step_left_1.clicked.connect(self.step_left_1)
+        self.btn_step_right_1.clicked.connect(self.step_right_1)
+        self.btn_step_left_2.clicked.connect(self.step_left_2)
+        self.btn_step_right_2.clicked.connect(self.step_right_2)
 
     def connect_update_motor_1(self):
         self.update_motor_thread_1: UpdateMotorThread
@@ -417,6 +448,26 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self.le_pos_um_2.setText('%.3f' % self.target_um_2)
 
+    def update_stepsize_um_1(self):
+        step_size_um = float(self.le_step_size_um_1.text())
+        self.step_size_um_1 = step_size_um
+        self.le_step_size_fs_1.setText('%.3f' % self.step_size_um_1)
+
+    def update_stepsize_fs_1(self):
+        step_size_fs = float(self.le_step_size_fs_1.text())
+        self.step_size_fs_1 = step_size_fs
+        self.le_step_size_um_1.setText('%.3f' % self.step_size_um_1)
+
+    def update_stepsize_um_2(self):
+        step_size_um = float(self.le_step_size_um_2.text())
+        self.step_size_um_2 = step_size_um
+        self.le_step_size_fs_2.setText('%.3f' % self.step_size_um_2)
+
+    def update_stepsize_fs_2(self):
+        step_size_fs = float(self.le_step_size_fs_2.text())
+        self.step_size_fs_2 = step_size_fs
+        self.le_step_size_um_2.setText('%.3f' % self.step_size_um_2)
+
     def move_to_pos_1(self, *args, target_um=None):
         if self.motor_moving_1.is_set():
             self.update_motor_thread_1: UpdateMotorThread
@@ -426,10 +477,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         if target_um is None:
             target_um = self.target_um_1
 
-        pos_um = self.stage_1.pos_um  # retrieve current position from stage
         ll_mm, ul_mm = self.stage_1.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
-        if any([pos_um < ll_um, pos_um > ul_um]):
+        if any([target_um < ll_um, target_um > ul_um]):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
@@ -452,10 +502,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         if target_um is None:
             target_um = self.target_um_2
 
-        pos_um = self.stage_2.pos_um  # retrieve current position from stage
         ll_mm, ul_mm = self.stage_2.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
-        if any([pos_um < ll_um, pos_um > ul_um]):
+        if any([target_um < ll_um, target_um > ul_um]):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
@@ -586,6 +635,94 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         lims_ft = np.array([0, max(ft)])
         self.plot_ptscn.format_to_xy_data(lims_wl, lims_ft)
         self.curve_ptscn.setData(wl, ft)
+
+    def step_right_1(self):
+        if self.motor_moving_1.is_set():
+            self.update_motor_thread_1: UpdateMotorThread
+            self.update_motor_thread_1.stop()
+            return
+
+        pos_um = self.stage_1.pos_um  # retrieve position from stage
+        target_um = pos_um + self.step_size_um_1
+        ll_mm, ul_mm = self.stage_1.motor.get_stage_axis_info()[:2]
+        ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
+        if any([target_um < ll_um, target_um > ul_um]):
+            raise_error(self.ErrorWindow, "value exceeds stage limits")
+            return
+
+        self.stage_1.move_by_um(self.step_size_um_1)  # start moving the motor in relative mode
+
+        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.connect_update_motor_1()
+        thread = threading.Thread(target=self.update_motor_thread_1.run)
+        self.motor_moving_1.set()
+        thread.start()
+
+    def step_left_1(self):
+        if self.motor_moving_1.is_set():
+            self.update_motor_thread_1: UpdateMotorThread
+            self.update_motor_thread_1.stop()
+            return
+
+        pos_um = self.stage_1.pos_um  # retrieve position from stage
+        target_um = pos_um - self.step_size_um_1  # step left -> subtract
+        ll_mm, ul_mm = self.stage_1.motor.get_stage_axis_info()[:2]
+        ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
+        if any([target_um < ll_um, target_um > ul_um]):
+            raise_error(self.ErrorWindow, "value exceeds stage limits")
+            return
+
+        self.stage_1.move_by_um(-self.step_size_um_1)  # start moving the motor in relative mode, note the minus sign
+
+        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.connect_update_motor_1()
+        thread = threading.Thread(target=self.update_motor_thread_1.run)
+        self.motor_moving_1.set()
+        thread.start()
+
+    def step_right_2(self):
+        if self.motor_moving_2.is_set():
+            self.update_motor_thread_2: UpdateMotorThread
+            self.update_motor_thread_2.stop()
+            return
+
+        pos_um = self.stage_2.pos_um  # retrieve position from stage
+        target_um = pos_um + self.step_size_um_2
+        ll_mm, ul_mm = self.stage_2.motor.get_stage_axis_info()[:2]
+        ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
+        if any([target_um < ll_um, target_um > ul_um]):
+            raise_error(self.ErrorWindow, "value exceeds stage limits")
+            return
+
+        self.stage_2.move_by_um(self.step_size_um_2)  # start moving the motor in relative mode
+
+        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.connect_update_motor_2()
+        thread = threading.Thread(target=self.update_motor_thread_2.run)
+        self.motor_moving_2.set()
+        thread.start()
+
+    def step_left_2(self):
+        if self.motor_moving_2.is_set():
+            self.update_motor_thread_2: UpdateMotorThread
+            self.update_motor_thread_2.stop()
+            return
+
+        pos_um = self.stage_2.pos_um  # retrieve position from stage
+        target_um = pos_um - self.step_size_um_2  # step left -> subtract
+        ll_mm, ul_mm = self.stage_2.motor.get_stage_axis_info()[:2]
+        ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
+        if any([target_um < ll_um, target_um > ul_um]):
+            raise_error(self.ErrorWindow, "value exceeds stage limits")
+            return
+
+        self.stage_2.move_by_um(-self.step_size_um_2)  # start moving the motor in relative mode, note the minus sign
+
+        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.connect_update_motor_2()
+        thread = threading.Thread(target=self.update_motor_thread_2.run)
+        self.motor_moving_2.set()
+        thread.start()
 
 
 # %%____________________________________________________________________________________________________________________
