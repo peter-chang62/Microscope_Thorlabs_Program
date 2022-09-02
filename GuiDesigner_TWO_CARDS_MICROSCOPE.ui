@@ -1247,7 +1247,7 @@
                         </size>
                        </property>
                        <property name="text">
-                        <string/>
+                        <string>1</string>
                        </property>
                       </widget>
                      </item>
@@ -1267,7 +1267,7 @@
                         </size>
                        </property>
                        <property name="text">
-                        <string>1</string>
+                        <string/>
                        </property>
                       </widget>
                      </item>
@@ -1576,7 +1576,7 @@
                         </size>
                        </property>
                        <property name="text">
-                        <string/>
+                        <string>1</string>
                        </property>
                       </widget>
                      </item>
@@ -1596,7 +1596,7 @@
                         </size>
                        </property>
                        <property name="text">
-                        <string>1</string>
+                        <string/>
                        </property>
                       </widget>
                      </item>

@@ -94,8 +94,6 @@ class MotorInterface:
         # don't let the stage come closer than this to the stage limits.
         self._safety_buffer_mm = edge_limit_buffer_mm  # 1um
 
-        self.error_window = ErrorWindow()
-
     @property
     def pos_um(self):
         return self.motor.position * 1e3
@@ -166,19 +164,8 @@ class MotorInterface:
         # move the motor to the new position and update the position in micron
         self.motor.move_by(value_mm)
 
-    def value_exceeds_limits(self, value_um):
-        predicted_pos_um = value_um + self.pos_um  # target position
-        min_limit_um = self.motor.get_stage_axis_info()[0] * 1e3
-        max_limit_um = self.motor.get_stage_axis_info()[1] * 1e3
-        buffer_um = self._safety_buffer_mm * 1e3
-
-        if (predicted_pos_um < min_limit_um + buffer_um) or (
-                predicted_pos_um > max_limit_um - buffer_um):
-            raise_error(self.error_window,
-                        "exceeding stage limits")
-            return True
-        else:
-            return False
+    def set_max_vel(self, m_s):
+        self.motor.set_max_vel(m_s)
 
 
 # ______________________________________________________________________________________________________________________
@@ -246,6 +233,8 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.stage_2 = MotorInterface(apt.KDC101(COM2))
         self.stage_1.T0_um = float(np.loadtxt("T0_um_1.txt"))
         self.stage_2.T0_um = float(np.loadtxt("T0_um_2.txt"))
+        self.stage_1.set_max_vel(1)
+        self.stage_2.set_max_vel(1)
         self.pos_um_1 = None
         self.pos_um_2 = None
         self.update_lcd_pos_1(self.stage_1.pos_um)
@@ -255,8 +244,10 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_2 = threading.Event()
         self.target_um_1 = None
         self.target_um_2 = None
-        self.step_size_um_1 = 1
-        self.step_size_um_2 = 1
+        self.step_size_um_1 = None
+        self.step_size_um_2 = None
+        self.update_stepsize_um_1()
+        self.update_stepsize_um_2()
 
         self.update_motor_thread_1 = None
         self.update_motor_thread_2 = None
@@ -451,7 +442,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
     def update_stepsize_um_1(self):
         step_size_um = float(self.le_step_size_um_1.text())
         self.step_size_um_1 = step_size_um
-        self.le_step_size_fs_1.setText('%.3f' % self.step_size_um_1)
+        self.le_step_size_fs_1.setText('%.3f' % self.step_size_fs_1)
 
     def update_stepsize_fs_1(self):
         step_size_fs = float(self.le_step_size_fs_1.text())
@@ -461,7 +452,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
     def update_stepsize_um_2(self):
         step_size_um = float(self.le_step_size_um_2.text())
         self.step_size_um_2 = step_size_um
-        self.le_step_size_fs_2.setText('%.3f' % self.step_size_um_2)
+        self.le_step_size_fs_2.setText('%.3f' % self.step_size_fs_2)
 
     def update_stepsize_fs_2(self):
         step_size_fs = float(self.le_step_size_fs_2.text())
