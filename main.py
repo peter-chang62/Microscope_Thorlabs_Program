@@ -240,6 +240,8 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self.stage_1 = MotorInterface(apt.KDC101(COM1))
         self.stage_2 = MotorInterface(apt.KDC101(COM2))
+        self.stage_1.T0_um = float(np.loadtxt("T0_um_1.txt"))
+        self.stage_2.T0_um = float(np.loadtxt("T0_um_2.txt"))
         self.pos_um_1 = None
         self.pos_um_2 = None
         self.update_lcd_pos_1(self.stage_1.pos_um)
@@ -482,7 +484,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         thread = threading.Thread(target=self.update_motor_thread_1.run)
         self.motor_moving_1.set()
         thread.start()
-        
+
     def home_stage_2(self):
         if self.motor_moving_2.is_set():
             self.update_motor_thread_2: UpdateMotorThread
@@ -500,10 +502,26 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         thread.start()
 
     def set_T0_1(self):
-        print("setting T0 for stage 1")
+        pos_um = self.stage_1.pos_um  # read position from stage 1
+        self.stage_1.T0_um = pos_um
+
+        with open("T0_um_1.txt", "w") as file:
+            file.write(str(pos_um))
+
+        self.update_lcd_pos_1(pos_um)
+        self.le_pos_fs_1.setText('0')
+        self.update_target_fs_1()
 
     def set_T0_2(self):
-        print("setting T0 for stage 2")
+        pos_um = self.stage_2.pos_um  # read position from stage 1
+        self.stage_2.T0_um = pos_um
+
+        with open("T0_um_2.txt", "w") as file:
+            file.write(str(pos_um))
+
+        self.update_lcd_pos_2(pos_um)
+        self.le_pos_fs_2.setText('0')
+        self.update_target_fs_2()
 
     def update_trigon_1(self, flag):
         if flag:
