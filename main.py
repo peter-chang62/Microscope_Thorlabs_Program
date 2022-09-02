@@ -636,21 +636,24 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.plot_ptscn.format_to_xy_data(lims_wl, lims_ft)
         self.curve_ptscn.setData(wl, ft)
 
-    def step_right_1(self):
+    def step_right_1(self, *args, step_um=None):
         if self.motor_moving_1.is_set():
             self.update_motor_thread_1: UpdateMotorThread
             self.update_motor_thread_1.stop()
             return
 
+        if step_um is None:
+            step_um = self.step_size_um_1
+
         pos_um = self.stage_1.pos_um  # retrieve position from stage
-        target_um = pos_um + self.step_size_um_1
+        target_um = pos_um + step_um
         ll_mm, ul_mm = self.stage_1.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
         if any([target_um < ll_um, target_um > ul_um]):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
-        self.stage_1.move_by_um(self.step_size_um_1)  # start moving the motor in relative mode
+        self.stage_1.move_by_um(step_um)  # start moving the motor in relative mode
 
         self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
         self.connect_update_motor_1()
@@ -658,21 +661,24 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_1.set()
         thread.start()
 
-    def step_left_1(self):
+    def step_left_1(self, *args, step_um=None):
         if self.motor_moving_1.is_set():
             self.update_motor_thread_1: UpdateMotorThread
             self.update_motor_thread_1.stop()
             return
 
+        if step_um is None:
+            step_um = self.step_size_um_1
+
         pos_um = self.stage_1.pos_um  # retrieve position from stage
-        target_um = pos_um - self.step_size_um_1  # step left -> subtract
+        target_um = pos_um - step_um  # step left -> subtract
         ll_mm, ul_mm = self.stage_1.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
         if any([target_um < ll_um, target_um > ul_um]):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
-        self.stage_1.move_by_um(-self.step_size_um_1)  # start moving the motor in relative mode, note the minus sign
+        self.stage_1.move_by_um(-step_um)  # start moving the motor in relative mode, note the minus sign
 
         self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
         self.connect_update_motor_1()
@@ -680,21 +686,24 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_1.set()
         thread.start()
 
-    def step_right_2(self):
+    def step_right_2(self, *args, step_um=None):
         if self.motor_moving_2.is_set():
             self.update_motor_thread_2: UpdateMotorThread
             self.update_motor_thread_2.stop()
             return
 
+        if step_um is None:
+            step_um = self.step_size_um_2
+
         pos_um = self.stage_2.pos_um  # retrieve position from stage
-        target_um = pos_um + self.step_size_um_2
+        target_um = pos_um + step_um
         ll_mm, ul_mm = self.stage_2.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
         if any([target_um < ll_um, target_um > ul_um]):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
-        self.stage_2.move_by_um(self.step_size_um_2)  # start moving the motor in relative mode
+        self.stage_2.move_by_um(step_um)  # start moving the motor in relative mode
 
         self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
         self.connect_update_motor_2()
@@ -702,21 +711,24 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_2.set()
         thread.start()
 
-    def step_left_2(self):
+    def step_left_2(self, *args, step_um=None):
         if self.motor_moving_2.is_set():
             self.update_motor_thread_2: UpdateMotorThread
             self.update_motor_thread_2.stop()
             return
 
+        if step_um is None:
+            step_um = self.step_size_um_2
+
         pos_um = self.stage_2.pos_um  # retrieve position from stage
-        target_um = pos_um - self.step_size_um_2  # step left -> subtract
+        target_um = pos_um - step_um  # step left -> subtract
         ll_mm, ul_mm = self.stage_2.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
         if any([target_um < ll_um, target_um > ul_um]):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
-        self.stage_2.move_by_um(-self.step_size_um_2)  # start moving the motor in relative mode, note the minus sign
+        self.stage_2.move_by_um(-step_um)  # start moving the motor in relative mode, note the minus sign
 
         self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
         self.connect_update_motor_2()
