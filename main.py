@@ -104,7 +104,7 @@ class MotorInterface:
     def pos_um(self, value_um):
         # move the motor to the new position, assuming they give the motor
         # position in mm
-        self.motor.position_mm = value_um * 1e-3
+        self.motor.position = value_um * 1e-3
 
     @property
     def pos_fs(self):
@@ -167,15 +167,15 @@ class MotorInterface:
         self.motor.move_by(value_mm)
 
     def value_exceeds_limits(self, value_um):
-        predicted_pos_um = value_um + self.pos_um
-        max_limit_um = self.motor.get_stage_axis_info()[0] * 1e3
-        min_limit_um = self.motor.get_stage_axis_info()[1] * 1e3
+        predicted_pos_um = value_um + self.pos_um  # target position
+        min_limit_um = self.motor.get_stage_axis_info()[0] * 1e3
+        max_limit_um = self.motor.get_stage_axis_info()[1] * 1e3
         buffer_um = self._safety_buffer_mm * 1e3
 
         if (predicted_pos_um < min_limit_um + buffer_um) or (
                 predicted_pos_um > max_limit_um - buffer_um):
             raise_error(self.error_window,
-                        "too close to stage limits (within 1um)")
+                        "exceeding stage limits")
             return True
         else:
             return False
@@ -218,6 +218,11 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.lcd_ptscn_pos_fs_1.setSegmentStyle(qt.QLCDNumber.Flat)
         self.lcd_ptscn_pos_fs_2.setSegmentStyle(qt.QLCDNumber.Flat)
 
+        self.lcd_ptscn_pos_um_1.setSmallDecimalPoint(True)
+        self.lcd_ptscn_pos_um_2.setSmallDecimalPoint(True)
+        self.lcd_ptscn_pos_fs_1.setSmallDecimalPoint(True)
+        self.lcd_ptscn_pos_fs_2.setSmallDecimalPoint(True)
+
         self.le_nyq_window.setValidator(qtg.QIntValidator())
         self.le_frep.setValidator(qtg.QDoubleValidator())
         self.le_pos_um_1.setValidator(qtg.QDoubleValidator())
@@ -237,12 +242,16 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.stage_2 = MotorInterface(apt.KDC101(COM2))
         self.pos_um_1 = None
         self.pos_um_2 = None
-        self.update_le_pos_1(self.stage_1.pos_um)
-        self.update_le_pos_2(self.stage_2.pos_um)
+        self.update_lcd_pos_1(self.stage_1.pos_um)
+        self.update_lcd_pos_2(self.stage_2.pos_um)
 
-        self.motor_moving = threading.Event()
+        self.motor_moving_1 = threading.Event()
+        self.motor_moving_2 = threading.Event()
         self.target_um_1 = None
         self.target_um_2 = None
+
+        self.update_motor_thread_1 = None
+        self.update_motor_thread_2 = None
 
         self.connect()
 
@@ -283,6 +292,29 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.btn_set_T0_1.clicked.connect(self.set_T0_1)
         self.btn_set_T0_2.clicked.connect(self.set_T0_2)
 
+        self.btn_move_to_pos_1.clicked.connect(self.move_to_pos_1)
+        self.btn_move_to_pos_2.clicked.connect(self.move_to_pos_2)
+        self.btn_home_stage_1.clicked.connect(self.home_stage_1)
+        self.btn_home_stage_2.clicked.connect(self.home_stage_2)
+
+    def connect_update_motor_1(self):
+        self.update_motor_thread_1: UpdateMotorThread
+        self.update_motor_thread_1.signal.progress.connect(self.update_lcd_pos_1)
+        self.update_motor_thread_1.signal.finished.connect(self.end_of_move_motor_1)
+
+    def connect_update_motor_2(self):
+        self.update_motor_thread_2: UpdateMotorThread
+        self.update_motor_thread_2.signal.progress.connect(self.update_lcd_pos_2)
+        self.update_motor_thread_2.signal.finished.connect(self.end_of_move_motor_2)
+
+    def end_of_move_motor_1(self):
+        self.btn_move_to_pos_1.setText("move to position")
+        self.btn_home_stage_1.setText("home stage")
+
+    def end_of_move_motor_2(self):
+        self.btn_move_to_pos_2.setText("move to position")
+        self.btn_home_stage_2.setText("home stage")
+
     def select_card_1(self, flag):
         if flag:
             self._card_index = 1
@@ -313,13 +345,13 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         else:
             self.frep = frep
 
-    def update_le_pos_1(self, pos_um):
+    def update_lcd_pos_1(self, pos_um):
         self.pos_um_1 = pos_um
         pos_fs = dist_um_to_T_fs(pos_um - self.stage_1.T0_um)
         self.lcd_ptscn_pos_um_1.display('%.3f' % pos_um)
         self.lcd_ptscn_pos_fs_1.display('%.3f' % pos_fs)
 
-    def update_le_pos_2(self, pos_um):
+    def update_lcd_pos_2(self, pos_um):
         self.pos_um_2 = pos_um
         pos_fs = dist_um_to_T_fs(pos_um - self.stage_2.T0_um)
         self.lcd_ptscn_pos_um_2.display('%.3f' % pos_um)
@@ -382,6 +414,90 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.target_um_2 = target_um
 
         self.le_pos_um_2.setText('%.3f' % self.target_um_2)
+
+    def move_to_pos_1(self, *args, target_um=None):
+        if self.motor_moving_1.is_set():
+            self.update_motor_thread_1: UpdateMotorThread
+            self.update_motor_thread_1.stop()
+            return
+
+        if target_um is None:
+            target_um = self.target_um_1
+
+        pos_um = self.stage_1.pos_um  # retrieve current position from stage
+        ll_mm, ul_mm = self.stage_1.motor.get_stage_axis_info()[:2]
+        ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
+        if any([pos_um < ll_um, pos_um > ul_um]):
+            raise_error(self.ErrorWindow, "value exceeds stage limits")
+            return
+
+        self.stage_1.pos_um = target_um  # start moving the motor
+
+        self.btn_home_stage_1.setText("stop motor")
+        self.btn_move_to_pos_1.setText("stop motor")
+        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.connect_update_motor_1()
+        thread = threading.Thread(target=self.update_motor_thread_1.run)
+        self.motor_moving_1.set()
+        thread.start()
+
+    def move_to_pos_2(self, *args, target_um=None):
+        if self.motor_moving_2.is_set():
+            self.update_motor_thread_2: UpdateMotorThread
+            self.update_motor_thread_2.stop()
+            return
+
+        if target_um is None:
+            target_um = self.target_um_2
+
+        pos_um = self.stage_2.pos_um  # retrieve current position from stage
+        ll_mm, ul_mm = self.stage_2.motor.get_stage_axis_info()[:2]
+        ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
+        if any([pos_um < ll_um, pos_um > ul_um]):
+            raise_error(self.ErrorWindow, "value exceeds stage limits")
+            return
+
+        self.stage_2.pos_um = target_um  # start moving the motor
+
+        self.btn_home_stage_2.setText("stop motor")
+        self.btn_move_to_pos_2.setText("stop motor")
+        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.connect_update_motor_2()
+        thread = threading.Thread(target=self.update_motor_thread_2.run)
+        self.motor_moving_2.set()
+        thread.start()
+
+    def home_stage_1(self):
+        if self.motor_moving_1.is_set():
+            self.update_motor_thread_1: UpdateMotorThread
+            self.update_motor_thread_1.stop()
+            return
+
+        self.stage_1.home()
+
+        self.btn_home_stage_1.setText("stop motor")
+        self.btn_move_to_pos_1.setText("stop motor")
+        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.connect_update_motor_1()
+        thread = threading.Thread(target=self.update_motor_thread_1.run)
+        self.motor_moving_1.set()
+        thread.start()
+        
+    def home_stage_2(self):
+        if self.motor_moving_2.is_set():
+            self.update_motor_thread_2: UpdateMotorThread
+            self.update_motor_thread_2.stop()
+            return
+
+        self.stage_2.home()
+
+        self.btn_home_stage_2.setText("stop motor")
+        self.btn_move_to_pos_2.setText("stop motor")
+        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.connect_update_motor_2()
+        thread = threading.Thread(target=self.update_motor_thread_2.run)
+        self.motor_moving_2.set()
+        thread.start()
 
     def set_T0_1(self):
         print("setting T0 for stage 1")
@@ -468,11 +584,13 @@ class UpdateMotorThread:
 
     def stop(self):
         self.stop_flag.set()
+        print("will attempt stop in next loop")
 
     def run(self):
         while self.motor_interface.is_in_motion:
             if self.stop_flag.is_set():
                 self.motor_interface.stop()
+                print("attempted a stop")
 
             pos = self.motor_interface.pos_um
             self.signal.progress.emit(pos)
