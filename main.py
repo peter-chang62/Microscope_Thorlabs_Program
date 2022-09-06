@@ -257,6 +257,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self.motor_moving_1 = threading.Event()
         self.motor_moving_2 = threading.Event()
+        self.lscn_running = threading.Event()
+        self.stop_lscn = threading.Event()
+
         self.target_ptscn_um_1 = None
         self.target_ptscn_um_2 = None
         self.target_lscn_strt_um_1 = None
@@ -274,6 +277,21 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.update_motor_thread_2 = None
 
         self.connect()
+
+        # temporary storage variables __________________________________________________________________________________
+        self._x2 = None
+        self._y2 = None
+
+        self._step_um = None
+        self._step_x = None
+        self._step_y = None
+        self._npts = None
+        self._n = None
+        self._X = None
+        self._Y = None
+        self._FT = None
+        self._WL = None
+        # ______________________________________________________________________________________________________________
 
     @property
     def step_size_ptscn_fs_1(self):
@@ -404,6 +422,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.btn_step_right_1.clicked.connect(self.step_right_1)
         self.btn_step_left_2.clicked.connect(self.step_left_2)
         self.btn_step_right_2.clicked.connect(self.step_right_2)
+        self.btn_lscn_start.clicked.connect(self.start_line_scan_notrigger)
 
     def connect_update_motor_1(self):
         self.update_motor_thread_1: UpdateMotorThread
@@ -945,15 +964,49 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_2.set()
         thread.start()
 
+    def start_line_scan_notrigger(self):
+        x1 = self.target_lscn_strt_um_1
+        y1 = self.target_lscn_strt_um_2
+        x2 = self.target_lscn_end_um_1
+        y2 = self.target_lscn_end_um_2
+        step_um = self.step_size_lscn_um
+
+        self.line_scan_notrigger(x1, y1, x2, y2, step_um)
+
     # __________________________________________________________________________________________________________________
     # Below we do all scans without trigger. This is significantly easier than continuous move because no streaming is
     # necessary
     # __________________________________________________________________________________________________________________
     def line_scan_notrigger(self, x1, y1, x2, y2, step_um):
-        # treat motor 1 as x and motor 2 as y
-        self.move_to_pos_1(x1)  # move to start position
-        self.move_to_pos_2(y1)
+        if self.lscn_running.is_set():  # scan already running
+            self.stop_lscn.set()
+            return
+        elif self.motor_moving_1.is_set():  # motor 1 currently in use
+            raise_error(self.ErrorWindow, "stop stage 1 first")
+            return
+        elif self.motor_moving_2.is_set():  # motor 2 curently in use
+            raise_error(self.ErrorWindow, "stop stage 2 first")
+            return
 
+        # treat motor 1 as x and motor 2 as y
+        self.move_to_pos_1(target_um=x1)  # move to start position
+        self.move_to_pos_2(target_um=y1)
+
+        # store variables
+        self._x2 = x2
+        self._y2 = y2
+        self._step_um = step_um
+
+        # connect motor
+        self.update_motor_thread_1.signal.finished.connect(self._check_if_at_start)
+
+    def _check_if_at_start(self):
+        if self.motor_moving_2.is_set():
+            self.update_motor_thread_2.signal.finished.connect(self._check_if_at_start)
+        else:
+            self._line_scan_notrigger_2(self._x2, self._y2, self._step_um)
+
+    def _line_scan_notrigger_2(self, x2, y2, step_um):
         # acquire the first spectrum and record the position
         wl, ft = self.acquire_and_get_spectrum()
         FT = [ft]
@@ -972,22 +1025,72 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         step_y = step_um * ry
         npts = np.ceil(r / step_um)
 
+        # store variables
+        self._step_x = step_x
+        self._step_y = step_y
+        self._step_um = step_um
+        self._npts = npts
+        self._n = 0
+        self._X = X
+        self._Y = Y
+        self._FT = FT
+        self._WL = wl
+
+        # connect motor
+        self.lscn_running.set()
+        self.btn_lscn_start.setText("stop scan")
+        self._step_one()
+
+        # old for loop version (would cause GUI to freeze) _____________________________________________________________
         # Scan!
-        for n in range(npts):
-            self.step_right_1(step_x)
-            self.step_right_2(step_y)
+        # for n in range(npts):
+        #     self.step_right_1(step_x)
+        #     self.step_right_2(step_y)
+        #
+        #     X.append(self.stage_1.pos_um)
+        #     Y.append(self.stage_2.pos_um)
+        #     FT.append(self.acquire_and_get_spectrum()[1])
+        #
+        #     print(X[n], Y[n], f'acquired point {n} of {npts}')
+        #
+        # # convert lists to arrays and return
+        # X = np.array(X)
+        # Y = np.array(Y)
+        # FT = np.array(FT)
+        # return X, Y, wl, FT
 
-            X.append(self.stage_1.pos_um)
-            Y.append(self.stage_2.pos_um)
-            FT.append(self.acquire_and_get_spectrum()[1])
+    def _check_if_ready_for_next(self):
+        if self.motor_moving_2.is_set():
+            self.update_motor_thread_2.signal.finished.connect(self._check_if_ready_for_next)
+        else:
+            self._step_two()
 
-            print(X[n], Y[n], f'acquired point {n} of {npts}')
+    def _step_one(self):
+        if self.stop_lscn.is_set():  # check for stop event
+            self.stop_lscn.clear()
+            return
 
-        # convert lists to arrays and return
-        X = np.array(X)
-        Y = np.array(Y)
-        FT = np.array(FT)
-        return X, Y, wl, FT
+        if self._n < self._npts:
+            self.step_right_1(self._step_x)
+            self.step_right_2(self._step_y)
+            self.update_motor_thread_1.signal.finished.connect(self._check_if_ready_for_next)
+        else:
+            self.btn_lscn_start.setText("start scan")
+            self.lscn_running.clear()
+            self.stop_lscn.clear()
+
+    def _step_two(self):
+        if self.stop_lscn.is_set():  # check for stop event
+            self.stop_lscn.clear()
+            return
+
+        self._X.append(self.stage_1.pos_um)
+        self._Y.append(self.stage_2.pos_um)
+        self._FT.append(self.acquire_and_get_spectrum()[1])
+        print(f'acquired point {self._n} of {self._npts}')
+
+        self._n += 1
+        self._step_one()
 
 
 # %%____________________________________________________________________________________________________________________
