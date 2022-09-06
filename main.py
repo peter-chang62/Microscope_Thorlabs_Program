@@ -958,9 +958,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         wl, ft = self.acquire_and_get_spectrum()
         FT = [ft]
         x1 = self.stage_1.pos_um
-        x2 = self.stage_2.pos_um
+        y1 = self.stage_2.pos_um
         X = [x1]
-        Y = [x2]
+        Y = [y1]
 
         # calculate the step size in x and step size in y
         dx = x2 - x1
