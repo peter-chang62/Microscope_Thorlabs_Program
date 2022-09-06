@@ -987,7 +987,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
     # __________________________________________________________________________________________________________________
     def line_scan_notrigger(self, x1, y1, x2, y2, step_um):
         if self.lscn_running.is_set():  # scan already running
-            self.stop_lscn.set()
+            self.stop_lscn.set()  # stop the line scan
             return
         elif self.motor_moving_1.is_set():  # motor 1 currently in use
             raise_error(self.ErrorWindow, "stop stage 1 first")
@@ -1073,9 +1073,17 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         else:
             self._step_two()
 
+    def lscn_stop_finished(self):
+        self.stop_lscn.clear()
+        self.lscn_running.clear()
+        self.btn_lscn_start.setText("start scan")
+        self._X = np.array(self._X)
+        self._Y = np.array(self._Y)
+        self._FT = np.array(self._FT)
+
     def _step_one(self):
         if self.stop_lscn.is_set():  # check for stop event
-            self.stop_lscn.clear()
+            self.lscn_stop_finished()
             return
 
         if self._n < self._npts:
@@ -1083,13 +1091,11 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             self.step_right_2(self._step_y)
             self.update_motor_thread_1.signal.finished.connect(self._check_if_ready_for_next)
         else:
-            self.btn_lscn_start.setText("start scan")
-            self.lscn_running.clear()
-            self.stop_lscn.clear()
+            self.lscn_stop_finished()
 
     def _step_two(self):
         if self.stop_lscn.is_set():  # check for stop event
-            self.stop_lscn.clear()
+            self.lscn_stop_finished()
             return
 
         self._X.append(self.stage_1.pos_um)
