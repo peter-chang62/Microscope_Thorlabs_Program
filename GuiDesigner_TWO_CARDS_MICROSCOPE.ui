@@ -2419,7 +2419,7 @@
                    </widget>
                   </item>
                   <item row="0" column="1">
-                   <widget class="QLineEdit" name="le_scn_step_size_um">
+                   <widget class="QLineEdit" name="le_lscn_step_size_um">
                     <property name="maximumSize">
                      <size>
                       <width>50</width>
@@ -2439,7 +2439,7 @@
                    </widget>
                   </item>
                   <item row="1" column="1">
-                   <widget class="QLineEdit" name="le_scn_step_size_fs">
+                   <widget class="QLineEdit" name="le_lscn_step_size_fs">
                     <property name="maximumSize">
                      <size>
                       <width>50</width>

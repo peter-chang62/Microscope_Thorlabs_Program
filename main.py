@@ -204,11 +204,19 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.lcd_ptscn_pos_um_2.setSegmentStyle(qt.QLCDNumber.Flat)
         self.lcd_ptscn_pos_fs_1.setSegmentStyle(qt.QLCDNumber.Flat)
         self.lcd_ptscn_pos_fs_2.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_lscn_pos_um_1.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_lscn_pos_um_2.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_lscn_pos_fs_1.setSegmentStyle(qt.QLCDNumber.Flat)
+        self.lcd_lscn_pos_fs_2.setSegmentStyle(qt.QLCDNumber.Flat)
 
         self.lcd_ptscn_pos_um_1.setSmallDecimalPoint(True)
         self.lcd_ptscn_pos_um_2.setSmallDecimalPoint(True)
         self.lcd_ptscn_pos_fs_1.setSmallDecimalPoint(True)
         self.lcd_ptscn_pos_fs_2.setSmallDecimalPoint(True)
+        self.lcd_lscn_pos_um_1.setSmallDecimalPoint(True)
+        self.lcd_lscn_pos_um_2.setSmallDecimalPoint(True)
+        self.lcd_lscn_pos_fs_1.setSmallDecimalPoint(True)
+        self.lcd_lscn_pos_fs_2.setSmallDecimalPoint(True)
 
         self.le_nyq_window.setValidator(qtg.QIntValidator())
         self.le_frep.setValidator(qtg.QDoubleValidator())
@@ -244,10 +252,12 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_2 = threading.Event()
         self.target_um_1 = None
         self.target_um_2 = None
-        self.step_size_um_1 = None
-        self.step_size_um_2 = None
-        self.update_stepsize_um_1()
-        self.update_stepsize_um_2()
+        self.step_size_ptscn_um_1 = None
+        self.step_size_ptscn_um_2 = None
+        self.step_size_lscn_um = None
+        self.update_stepsize_ptscn_um_1()
+        self.update_stepsize_ptscn_um_2()
+        self.update_stepsize_lscn_um()
 
         self.update_motor_thread_1 = None
         self.update_motor_thread_2 = None
@@ -255,20 +265,28 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.connect()
 
     @property
-    def step_size_fs_1(self):
-        return dist_um_to_T_fs(self.step_size_um_1)
+    def step_size_ptscn_fs_1(self):
+        return dist_um_to_T_fs(self.step_size_ptscn_um_1)
 
-    @step_size_fs_1.setter
-    def step_size_fs_1(self, val):
-        self.step_size_um_1 = T_fs_to_dist_um(val)
+    @step_size_ptscn_fs_1.setter
+    def step_size_ptscn_fs_1(self, val):
+        self.step_size_ptscn_um_1 = T_fs_to_dist_um(val)
 
     @property
-    def step_size_fs_2(self):
-        return dist_um_to_T_fs(self.step_size_um_2)
+    def step_size_ptscn_fs_2(self):
+        return dist_um_to_T_fs(self.step_size_ptscn_um_2)
 
-    @step_size_fs_2.setter
-    def step_size_fs_2(self, val):
-        self.step_size_um_2 = T_fs_to_dist_um(val)
+    @step_size_ptscn_fs_2.setter
+    def step_size_ptscn_fs_2(self, val):
+        self.step_size_ptscn_um_2 = T_fs_to_dist_um(val)
+
+    @property
+    def step_size_lscn_fs(self):
+        return dist_um_to_T_fs(self.step_size_lscn_um)
+
+    @step_size_lscn_fs.setter
+    def step_size_lscn_fs(self, val):
+        self.step_size_lscn_um = T_fs_to_dist_um(val)
 
     @property
     def target_fs_1(self):
@@ -304,10 +322,12 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.le_pos_um_2.editingFinished.connect(self.update_target_um_2)
         self.le_pos_fs_1.editingFinished.connect(self.update_target_fs_1)
         self.le_pos_fs_2.editingFinished.connect(self.update_target_fs_2)
-        self.le_step_size_um_1.editingFinished.connect(self.update_stepsize_um_1)
-        self.le_step_size_fs_1.editingFinished.connect(self.update_stepsize_fs_1)
-        self.le_step_size_um_2.editingFinished.connect(self.update_stepsize_um_2)
-        self.le_step_size_fs_2.editingFinished.connect(self.update_stepsize_fs_2)
+        self.le_step_size_um_1.editingFinished.connect(self.update_stepsize_ptscn_um_1)
+        self.le_step_size_fs_1.editingFinished.connect(self.update_stepsize_ptscn_fs_1)
+        self.le_step_size_um_2.editingFinished.connect(self.update_stepsize_ptscn_um_2)
+        self.le_step_size_fs_2.editingFinished.connect(self.update_stepsize_ptscn_fs_2)
+        self.le_lscn_step_size_um.editingFinished.connect(self.update_stepsize_lscn_um)
+        self.le_lscn_step_size_fs.editingFinished.connect(self.update_stepsize_lscn_fs)
 
         self.btn_acquire_pt_scn.clicked.connect(self.acquire_and_get_spectrum)
         self.btn_set_T0_1.clicked.connect(self.set_T0_1)
@@ -374,12 +394,16 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         pos_fs = dist_um_to_T_fs(pos_um - self.stage_1.T0_um)
         self.lcd_ptscn_pos_um_1.display('%.3f' % pos_um)
         self.lcd_ptscn_pos_fs_1.display('%.3f' % pos_fs)
+        self.lcd_lscn_pos_um_1.display('%.3f' % pos_um)
+        self.lcd_lscn_pos_fs_1.display('%.3f' % pos_fs)
 
     def update_lcd_pos_2(self, pos_um):
         self.pos_um_2 = pos_um
         pos_fs = dist_um_to_T_fs(pos_um - self.stage_2.T0_um)
         self.lcd_ptscn_pos_um_2.display('%.3f' % pos_um)
         self.lcd_ptscn_pos_fs_2.display('%.3f' % pos_fs)
+        self.lcd_lscn_pos_um_2.display('%.3f' % pos_um)
+        self.lcd_lscn_pos_fs_2.display('%.3f' % pos_fs)
 
     def update_target_um_1(self):
         target_um = float(self.le_pos_um_1.text())
@@ -439,25 +463,35 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self.le_pos_um_2.setText('%.3f' % self.target_um_2)
 
-    def update_stepsize_um_1(self):
+    def update_stepsize_ptscn_um_1(self):
         step_size_um = float(self.le_step_size_um_1.text())
-        self.step_size_um_1 = step_size_um
-        self.le_step_size_fs_1.setText('%.3f' % self.step_size_fs_1)
+        self.step_size_ptscn_um_1 = step_size_um
+        self.le_step_size_fs_1.setText('%.3f' % self.step_size_ptscn_fs_1)
 
-    def update_stepsize_fs_1(self):
+    def update_stepsize_ptscn_fs_1(self):
         step_size_fs = float(self.le_step_size_fs_1.text())
-        self.step_size_fs_1 = step_size_fs
-        self.le_step_size_um_1.setText('%.3f' % self.step_size_um_1)
+        self.step_size_ptscn_fs_1 = step_size_fs
+        self.le_step_size_um_1.setText('%.3f' % self.step_size_ptscn_um_1)
 
-    def update_stepsize_um_2(self):
+    def update_stepsize_ptscn_um_2(self):
         step_size_um = float(self.le_step_size_um_2.text())
-        self.step_size_um_2 = step_size_um
-        self.le_step_size_fs_2.setText('%.3f' % self.step_size_fs_2)
+        self.step_size_ptscn_um_2 = step_size_um
+        self.le_step_size_fs_2.setText('%.3f' % self.step_size_ptscn_fs_2)
 
-    def update_stepsize_fs_2(self):
+    def update_stepsize_ptscn_fs_2(self):
         step_size_fs = float(self.le_step_size_fs_2.text())
-        self.step_size_fs_2 = step_size_fs
-        self.le_step_size_um_2.setText('%.3f' % self.step_size_um_2)
+        self.step_size_ptscn_fs_2 = step_size_fs
+        self.le_step_size_um_2.setText('%.3f' % self.step_size_ptscn_um_2)
+
+    def update_stepsize_lscn_um(self):
+        step_size_um = float(self.le_lscn_step_size_um.text())
+        self.step_size_lscn_um = step_size_um
+        self.le_lscn_step_size_fs.setText('%.3f' % self.step_size_lscn_fs)
+
+    def update_stepsize_lscn_fs(self):
+        step_size_fs = float(self.le_lscn_step_size_fs.text())
+        self.step_size_lscn_fs = step_size_fs
+        self.le_lscn_step_size_um.setText('%.3f' % self.step_size_lscn_um)
 
     def move_to_pos_1(self, *args, target_um=None):
         if self.motor_moving_1.is_set():
@@ -638,7 +672,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
 
         if step_um is None:
-            step_um = self.step_size_um_1
+            step_um = self.step_size_ptscn_um_1
 
         pos_um = self.stage_1.pos_um  # retrieve position from stage
         target_um = pos_um + step_um
@@ -663,7 +697,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
 
         if step_um is None:
-            step_um = self.step_size_um_1
+            step_um = self.step_size_ptscn_um_1
 
         pos_um = self.stage_1.pos_um  # retrieve position from stage
         target_um = pos_um - step_um  # step left -> subtract
@@ -688,7 +722,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
 
         if step_um is None:
-            step_um = self.step_size_um_2
+            step_um = self.step_size_ptscn_um_2
 
         pos_um = self.stage_2.pos_um  # retrieve position from stage
         target_um = pos_um + step_um
@@ -713,7 +747,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
 
         if step_um is None:
-            step_um = self.step_size_um_2
+            step_um = self.step_size_ptscn_um_2
 
         pos_um = self.stage_2.pos_um  # retrieve position from stage
         target_um = pos_um - step_um  # step left -> subtract
@@ -740,11 +774,15 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.move_to_pos_1(x1)  # move to start position
         self.move_to_pos_2(y1)
 
+        # acquire the first spectrum and record the position
         wl, ft = self.acquire_and_get_spectrum()
         FT = [ft]
+        x1 = self.stage_1.pos_um
+        x2 = self.stage_2.pos_um
         X = [x1]
-        Y = [y1]
+        Y = [x2]
 
+        # calculate the step size in x and step size in y
         dx = x2 - x1
         dy = y2 - y1
         r = np.sqrt(dx ** 2 + dy ** 2)
@@ -754,6 +792,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         step_y = step_um * ry
         npts = np.ceil(r / step_um)
 
+        # Scan!
         for n in range(npts):
             self.step_right_1(step_x)
             self.step_right_2(step_y)
@@ -764,6 +803,10 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
             print(X[n], Y[n], f'acquired point {n} of {npts}')
 
+        # convert lists to arrays and return
+        X = np.array(X)
+        Y = np.array(Y)
+        FT = np.array(FT)
         return X, Y, wl, FT
 
 
