@@ -228,6 +228,14 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.le_step_size_um_2.setValidator(qtg.QDoubleValidator())
         self.le_step_size_fs_1.setValidator(qtg.QDoubleValidator())
         self.le_step_size_fs_2.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_start_um_1.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_start_fs_1.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_start_um_2.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_start_fs_2.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_end_um_1.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_end_fs_1.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_end_um_2.setValidator(qtg.QDoubleValidator())
+        self.le_lscn_end_fs_2.setValidator(qtg.QDoubleValidator())
 
         self.plot_ptscn = pw.PlotWindow(self.le_ptscn_xmin,
                                         self.le_ptscn_xmax,
