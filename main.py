@@ -250,8 +250,12 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self.motor_moving_1 = threading.Event()
         self.motor_moving_2 = threading.Event()
-        self.target_um_1 = None
-        self.target_um_2 = None
+        self.target_ptscn_um_1 = None
+        self.target_ptscn_um_2 = None
+        self.target_lscn_strt_um_1 = None
+        self.target_lscn_strt_um_2 = None
+        self.target_lscn_end_um_1 = None
+        self.target_lscn_end_um_2 = None
         self.step_size_ptscn_um_1 = None
         self.step_size_ptscn_um_2 = None
         self.step_size_lscn_um = None
@@ -289,26 +293,70 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.step_size_lscn_um = T_fs_to_dist_um(val)
 
     @property
-    def target_fs_1(self):
-        dx = self.target_um_1 - self.stage_1.T0_um
+    def target_ptscn_fs_1(self):
+        dx = self.target_ptscn_um_1 - self.stage_1.T0_um
         return dist_um_to_T_fs(dx)
 
-    @target_fs_1.setter
-    def target_fs_1(self, val):
+    @target_ptscn_fs_1.setter
+    def target_ptscn_fs_1(self, val):
         dx = T_fs_to_dist_um(val)
         x = self.stage_1.T0_um + dx
-        self.target_um_1 = x
+        self.target_ptscn_um_1 = x
 
     @property
-    def target_fs_2(self):
-        dx = self.target_um_2 - self.stage_2.T0_um
+    def target_ptscn_fs_2(self):
+        dx = self.target_ptscn_um_2 - self.stage_2.T0_um
         return dist_um_to_T_fs(dx)
 
-    @target_fs_2.setter
-    def target_fs_2(self, val):
+    @target_ptscn_fs_2.setter
+    def target_ptscn_fs_2(self, val):
         dx = T_fs_to_dist_um(val)
         x = self.stage_2.T0_um + dx
-        self.target_um_2 = x
+        self.target_ptscn_um_2 = x
+
+    @property
+    def target_lscn_strt_fs_1(self):
+        dx = self.target_lscn_strt_um_1 - self.stage_1.T0_um
+        return dist_um_to_T_fs(dx)
+
+    @target_lscn_strt_fs_1.setter
+    def target_lscn_strt_fs_1(self, val):
+        dx = T_fs_to_dist_um(val)
+        x = self.stage_1.T0_um + dx
+        self.target_lscn_strt_um_1 = x
+
+    @property
+    def target_lscn_strt_fs_2(self):
+        dx = self.target_lscn_strt_um_2 - self.stage_2.T0_um
+        return dist_um_to_T_fs(dx)
+
+    @target_lscn_strt_fs_2.setter
+    def target_lscn_strt_fs_2(self, val):
+        dx = T_fs_to_dist_um(val)
+        x = self.stage_2.T0_um + dx
+        self.target_lscn_strt_um_2 = x
+
+    @property
+    def target_lscn_end_fs_1(self):
+        dx = self.target_lscn_end_um_1 - self.stage_1.T0_um
+        return dist_um_to_T_fs(dx)
+
+    @target_lscn_end_fs_1.setter
+    def target_lscn_end_fs_1(self, val):
+        dx = T_fs_to_dist_um(val)
+        x = self.stage_1.T0_um + dx
+        self.target_lscn_end_um_1 = x
+
+    @property
+    def target_lscn_end_fs_2(self):
+        dx = self.target_lscn_end_um_2 - self.stage_2.T0_um
+        return dist_um_to_T_fs(dx)
+
+    @target_lscn_end_fs_2.setter
+    def target_lscn_end_fs_2(self, val):
+        dx = T_fs_to_dist_um(val)
+        x = self.stage_2.T0_um + dx
+        self.target_lscn_end_um_2 = x
 
     def connect(self):
         self.radbtn_card1.clicked.connect(self.select_card_1)
@@ -328,6 +376,15 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.le_step_size_fs_2.editingFinished.connect(self.update_stepsize_ptscn_fs_2)
         self.le_lscn_step_size_um.editingFinished.connect(self.update_stepsize_lscn_um)
         self.le_lscn_step_size_fs.editingFinished.connect(self.update_stepsize_lscn_fs)
+
+        self.le_lscn_start_um_1.editingFinished.connect(self.update_target_lscn_strt_um_1)
+        self.le_lscn_start_um_2.editingFinished.connect(self.update_target_lscn_strt_um_2)
+        self.le_lscn_start_fs_1.editingFinished.connect(self.update_target_lscn_strt_fs_1)
+        self.le_lscn_start_fs_2.editingFinished.connect(self.update_target_lscn_strt_fs_2)
+        self.le_lscn_end_um_1.editingFinished.connect(self.update_target_lscn_end_um_1)
+        self.le_lscn_end_um_2.editingFinished.connect(self.update_target_lscn_end_um_2)
+        self.le_lscn_end_fs_1.editingFinished.connect(self.update_target_lscn_end_fs_1)
+        self.le_lscn_end_fs_2.editingFinished.connect(self.update_target_lscn_end_fs_2)
 
         self.btn_acquire_pt_scn.clicked.connect(self.acquire_and_get_spectrum)
         self.btn_set_T0_1.clicked.connect(self.set_T0_1)
@@ -415,9 +472,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         elif target_um > upper_limit:
             raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
             return
-        self.target_um_1 = target_um
+        self.target_ptscn_um_1 = target_um
 
-        self.le_pos_fs_1.setText('%.3f' % self.target_fs_1)
+        self.le_pos_fs_1.setText('%.3f' % self.target_ptscn_fs_1)
 
     def update_target_fs_1(self):
         target_fs = float(self.le_pos_fs_1.text())
@@ -430,9 +487,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         elif target_um > upper_limit:
             raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
             return
-        self.target_um_1 = target_um
+        self.target_ptscn_um_1 = target_um
 
-        self.le_pos_um_1.setText('%.3f' % self.target_um_1)
+        self.le_pos_um_1.setText('%.3f' % self.target_ptscn_um_1)
 
     def update_target_um_2(self):
         target_um = float(self.le_pos_um_2.text())
@@ -444,9 +501,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         elif target_um > upper_limit:
             raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
             return
-        self.target_um_2 = target_um
+        self.target_ptscn_um_2 = target_um
 
-        self.le_pos_fs_2.setText('%.3f' % self.target_fs_2)
+        self.le_pos_fs_2.setText('%.3f' % self.target_ptscn_fs_2)
 
     def update_target_fs_2(self):
         target_fs = float(self.le_pos_fs_2.text())
@@ -459,9 +516,125 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         elif target_um > upper_limit:
             raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
             return
-        self.target_um_2 = target_um
+        self.target_ptscn_um_2 = target_um
 
-        self.le_pos_um_2.setText('%.3f' % self.target_um_2)
+        self.le_pos_um_2.setText('%.3f' % self.target_ptscn_um_2)
+
+    def update_target_lscn_strt_um_1(self):
+        target_um = float(self.le_lscn_start_um_1.text())
+        upper_limit = self.stage_1.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_strt_um_1 = target_um
+
+        self.le_lscn_start_fs_1.setText('%.3f' % self.target_lscn_strt_fs_1)
+
+    def update_target_lscn_strt_fs_1(self):
+        target_fs = float(self.le_lscn_start_fs_1.text())
+        target_um = T_fs_to_dist_um(target_fs) + self.stage_1.T0_um
+        upper_limit = self.stage_1.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_strt_um_1 = target_um
+
+        self.le_lscn_start_um_1.setText('%.3f' % self.target_lscn_strt_um_1)
+
+    def update_target_lscn_strt_um_2(self):
+        target_um = float(self.le_lscn_start_um_2.text())
+        upper_limit = self.stage_2.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_strt_um_2 = target_um
+
+        self.le_lscn_start_fs_2.setText('%.3f' % self.target_lscn_strt_fs_2)
+
+    def update_target_lscn_strt_fs_2(self):
+        target_fs = float(self.le_lscn_start_fs_2.text())
+        target_um = T_fs_to_dist_um(target_fs) + self.stage_2.T0_um
+        upper_limit = self.stage_2.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_strt_um_2 = target_um
+
+        self.le_lscn_start_um_2.setText('%.3f' % self.target_lscn_strt_um_2)
+
+    def update_target_lscn_end_um_1(self):
+        target_um = float(self.le_lscn_end_um_1.text())
+        upper_limit = self.stage_1.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_end_um_1 = target_um
+
+        self.le_lscn_end_fs_1.setText('%.3f' % self.target_lscn_end_fs_1)
+
+    def update_target_lscn_end_fs_1(self):
+        target_fs = float(self.le_lscn_end_fs_1.text())
+        target_um = T_fs_to_dist_um(target_fs) + self.stage_1.T0_um
+        upper_limit = self.stage_1.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_end_um_1 = target_um
+
+        self.le_lscn_end_um_1.setText('%.3f' % self.target_lscn_end_um_1)
+
+    def update_target_lscn_end_um_2(self):
+        target_um = float(self.le_lscn_end_um_2.text())
+        upper_limit = self.stage_2.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_end_um_2 = target_um
+
+        self.le_lscn_end_fs_2.setText('%.3f' % self.target_lscn_end_fs_2)
+
+    def update_target_lscn_end_fs_2(self):
+        target_fs = float(self.le_lscn_end_fs_2.text())
+        target_um = T_fs_to_dist_um(target_fs) + self.stage_2.T0_um
+        upper_limit = self.stage_2.motor.get_stage_axis_info()[1] * 1e3
+
+        if target_um < 0:
+            raise_error(self.ErrorWindow, "target position must be >= 0")
+            return
+        elif target_um > upper_limit:
+            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            return
+        self.target_lscn_end_um_2 = target_um
+
+        self.le_lscn_end_um_2.setText('%.3f' % self.target_lscn_end_um_2)
 
     def update_stepsize_ptscn_um_1(self):
         step_size_um = float(self.le_step_size_um_1.text())
@@ -500,7 +673,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
 
         if target_um is None:
-            target_um = self.target_um_1
+            target_um = self.target_ptscn_um_1
 
         ll_mm, ul_mm = self.stage_1.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
@@ -525,7 +698,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
 
         if target_um is None:
-            target_um = self.target_um_2
+            target_um = self.target_ptscn_um_2
 
         ll_mm, ul_mm = self.stage_2.motor.get_stage_axis_info()[:2]
         ll_um, ul_um = ll_mm * 1e3, ul_mm * 1e3
