@@ -234,8 +234,15 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
                                         self.le_ptscn_ymin,
                                         self.le_ptscn_ymax,
                                         self.gv_ptscn)
+        self.plot_lscn = pw.PlotWindow(self.le_lscn_xmin,
+                                       self.le_lscn_xmax,
+                                       self.le_lscn_ymin,
+                                       self.le_lscn_ymax,
+                                       self.gv_lscn)
         self.curve_ptscn = pw.create_curve()
         self.plot_ptscn.plotwidget.addItem(self.curve_ptscn)
+        self.curve_lscn = pw.create_curve()
+        self.plot_lscn.plotwidget.addItem(self.curve_lscn)
 
         self.stage_1 = MotorInterface(apt.KDC101(COM1))
         self.stage_2 = MotorInterface(apt.KDC101(COM2))
