@@ -737,7 +737,7 @@ class StreamWithGui(dsa.Stream):
         # if self.single_acquire_array is not None:
         #     self.apply_ppifg()
 
-    def acquire(self):
+    def acquire(self, *args, set_ppifg=True):
         if self.card_stream_running.is_set():
             dsa.raise_error(self.ErrorWindow, "stop card stream first")
             return
@@ -757,11 +757,12 @@ class StreamWithGui(dsa.Stream):
 
         gc.collect()
 
-        npts_int, npts_float, level = pf.find_npts(self.single_acquire_array, level_percent=self.plotchecklevel)
-        self._level = level
+        if set_ppifg:
+            npts_int, npts_float, level = pf.find_npts(self.single_acquire_array, level_percent=self.plotchecklevel)
+            self._level = level
 
-        self.le_ppifg.setText(str(npts_float))
-        self.ppifg = npts_int
+            self.le_ppifg.setText(str(npts_float))
+            self.ppifg = npts_int
 
     def apply_ppifg(self):
         if self.ppifg is None:

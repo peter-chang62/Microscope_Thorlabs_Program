@@ -1,4 +1,6 @@
 import threading
+import time
+
 import scipy.constants as sc
 import PyQt5.QtWidgets as qt
 from Error_Window import Ui_Form
@@ -14,7 +16,7 @@ import PlotWidgets as pw
 import PyQt5.QtGui as qtg
 
 edge_limit_buffer_mm = 0.0  # 1 um
-COM1 = "COM3"
+COM1 = "COM4"
 COM2 = "COM6"
 
 
@@ -823,7 +825,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
     def acquire_and_get_spectrum(self):
         # acquire
         try:
-            self.active_stream.acquire()
+            self.active_stream.acquire(set_ppifg=False)
         except:
             raise_error(self.ErrorWindow, "FAILED TO ACQUIRE :(")
             return  # exit
@@ -833,8 +835,10 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return  # exit
 
         x = self.active_stream.single_acquire_array
-        x = x[self.active_stream.ppifg // 2:]  # assuming self-triggered : throw out first PPIFG // 2
-        x = pf.adjust_data_and_reshape(x, self.stream1.ppifg)  # didn't acquire NPTS = integer x ppifg
+        x = x[np.argmax(x[:self.active_stream.ppifg]):][self.active_stream.ppifg // 2:]
+        N = len(x) // self.active_stream.ppifg
+        x = x[:N * self.active_stream.ppifg]
+        x.resize((N, self.active_stream.ppifg))
 
         # ______________________________________________________________________________________________________________
         # below I just shift correct by overlapping the maxima of all the interferograms
@@ -842,10 +846,11 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         ind_ref = np.argmax(x[0])  # maximum of first interferogram
         ind_diff = ind_ref - np.argmax(x, axis=1)  # maximum of first - maximum of all the rest
-        r, c = np.ogrid[:x.shape[0], :x.shape[1]]
-        c_shift = c + (ind_diff - len(c.flatten()))[:, np.newaxis]
-        x = x[r, c_shift]
+
+        for n, i in enumerate(x):
+            x[n] = np.roll(i, ind_diff[n])
         x = np.mean(x, 0)
+
         ft = fft(x).__abs__()
 
         # ______________________________________________________________________________________________________________
@@ -865,11 +870,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         # ______________________________________________________________________________________________________________
         # update the plot
         # ______________________________________________________________________________________________________________
-        lims_wl = np.array([min(wl), max(wl)])
-        lims_ft = np.array([0, max(ft)])
-        self.plot_ptscn.format_to_xy_data(lims_wl, lims_ft)
         self.curve_ptscn.setData(wl, ft)
-
         return wl, ft
 
     def step_right_1(self, *args, step_um=None):
@@ -1087,9 +1088,15 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return
 
         if self._n < self._npts:
-            self.step_right_1(self._step_x)
-            self.step_right_2(self._step_y)
-            self.update_motor_thread_1.signal.finished.connect(self._check_if_ready_for_next)
+            if abs(self._step_x) > 0:
+                self.step_right_1(step_um=self._step_x)
+            if abs(self._step_y) > 0:
+                self.step_right_2(step_um=self._step_y)
+
+            if abs(self._step_x) > 0:
+                self.update_motor_thread_1.signal.finished.connect(self._check_if_ready_for_next)
+            else:
+                self.update_motor_thread_2.signal.finished.connect(self._check_if_ready_for_next)
         else:
             self.lscn_stop_finished()
 
