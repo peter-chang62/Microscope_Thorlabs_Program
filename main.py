@@ -1,6 +1,6 @@
 import threading
 import time
-
+import matplotlib.pyplot as plt
 import scipy.constants as sc
 import PyQt5.QtWidgets as qt
 from Error_Window import Ui_Form
@@ -822,7 +822,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             print("turning OFF trigger for stage 2")
             self.stage_2.trigger_on = False
 
-    def acquire_and_get_spectrum(self):
+    def acquire_and_get_spectrum(self, *args, active_correct=False):
         # acquire
         try:
             self.active_stream.acquire(set_ppifg=False)
@@ -835,43 +835,48 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             return  # exit
 
         x = self.active_stream.single_acquire_array
-        x = x[np.argmax(x[:self.active_stream.ppifg]):][self.active_stream.ppifg // 2:]
-        N = len(x) // self.active_stream.ppifg
-        x = x[:N * self.active_stream.ppifg]
-        x.resize((N, self.active_stream.ppifg))
 
-        # ______________________________________________________________________________________________________________
-        # below I just shift correct by overlapping the maxima of all the interferograms
-        # ______________________________________________________________________________________________________________
+        if active_correct:
+            x = x[np.argmax(x[:self.active_stream.ppifg]):][self.active_stream.ppifg // 2:]
+            N = len(x) // self.active_stream.ppifg
+            x = x[:N * self.active_stream.ppifg]
+            x.resize((N, self.active_stream.ppifg))
 
-        ind_ref = np.argmax(x[0])  # maximum of first interferogram
-        ind_diff = ind_ref - np.argmax(x, axis=1)  # maximum of first - maximum of all the rest
+            # __________________________________________________________________________________________________________
+            # below I just shift correct by overlapping the maxima of all the interferograms
+            # __________________________________________________________________________________________________________
 
-        for n, i in enumerate(x):
-            x[n] = np.roll(i, ind_diff[n])
-        x = np.mean(x, 0)
+            ind_ref = np.argmax(x[0])  # maximum of first interferogram
+            ind_diff = ind_ref - np.argmax(x, axis=1)  # maximum of first - maximum of all the rest
 
-        ft = fft(x).__abs__()
+            for n, i in enumerate(x):
+                x[n] = np.roll(i, ind_diff[n])
+            x = np.mean(x, 0)
 
-        # ______________________________________________________________________________________________________________
-        # calculate the wavelength axis
-        # ______________________________________________________________________________________________________________
-        center = self.active_stream.ppifg // 2
-        Nyq_Freq = center * self.frep
-        translation = (self.Nyquist_Window - 1) * Nyq_Freq
-        nu = np.linspace(0, Nyq_Freq, center) + translation
-        wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
+            ft = fft(x).__abs__()
 
-        if self.Nyquist_Window % 2 == 0:
-            ft = ft[:center]  # negative frequency side
+            # __________________________________________________________________________________________________________
+            # calculate the wavelength axis
+            # __________________________________________________________________________________________________________
+            center = self.active_stream.ppifg // 2
+            Nyq_Freq = center * self.frep
+            translation = (self.Nyquist_Window - 1) * Nyq_Freq
+            nu = np.linspace(0, Nyq_Freq, center) + translation
+            wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
+
+            if self.Nyquist_Window % 2 == 0:
+                ft = ft[:center]  # negative frequency side
+            else:
+                ft = ft[center:]  # positive frequency side
+
+            # __________________________________________________________________________________________________________
+            # update the plot
+            # __________________________________________________________________________________________________________
+            self.curve_ptscn.setData(wl, ft)
+            return wl, ft
+
         else:
-            ft = ft[center:]  # positive frequency side
-
-        # ______________________________________________________________________________________________________________
-        # update the plot
-        # ______________________________________________________________________________________________________________
-        self.curve_ptscn.setData(wl, ft)
-        return wl, ft
+            return None, x
 
     def step_right_1(self, *args, step_um=None):
         if self.motor_moving_1.is_set():

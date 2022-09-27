@@ -37,7 +37,7 @@ def plot_section(arr, npts, npts_plot):
 
 
 def find_npts(dat, level_percent=40):
-    level = np.max(abs(dat)) * level_percent * .01
+    level = np.max(dat) * level_percent * .01
     ind = (dat > level).nonzero()[0]
     diff = np.diff(ind)
     ind_diff = (diff > 1000).nonzero()[0]

@@ -272,3 +272,10 @@ def test(ppifg, plot=True, Nplot=10):
         [plt.plot(d[i, ppifg // 2 - 100: ppifg // 2 + 100]) for i in range(Nplot)]
 
     return d
+
+# %% ___________________________________________________________________________________________________________________
+# # It can't even configure the system to use certain segment sizes. pretty sure same issue in GaGe's provided sample
+# # code!
+# segmentsize = 74162 * 1000
+# # segmentsize = 103944 * 1000
+# x = acquire(segmentsize, None, 'include/Acquire_CARD1.ini')

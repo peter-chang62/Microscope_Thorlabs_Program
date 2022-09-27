@@ -305,7 +305,7 @@ class StreamWithGui(dsa.Stream):
 
         plt.figure()
         N = 30000000 // 2
-        plt.plot(dsa.normalize(self.single_acquire_array[:N]))
+        plt.plot(self.single_acquire_array[:N] / self.single_acquire_array.max())
         plt.show()
 
     def initialization_before_streaming(self):
