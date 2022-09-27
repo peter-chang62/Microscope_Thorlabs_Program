@@ -18,6 +18,8 @@ import PyQt5.QtGui as qtg
 edge_limit_buffer_mm = 0.0  # 1 um
 COM1 = "COM4"
 COM2 = "COM6"
+active_correct_line_scan = False
+databackup_path = r'D:\Microscope\databackup/'
 
 
 def fft(x, axis=None):
@@ -822,7 +824,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             print("turning OFF trigger for stage 2")
             self.stage_2.trigger_on = False
 
-    def acquire_and_get_spectrum(self, *args, active_correct=False):
+    def acquire_and_get_spectrum(self, *args, active_correct=active_correct_line_scan):
         # acquire
         try:
             self.active_stream.acquire(set_ppifg=False)
@@ -1023,7 +1025,11 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
     def _line_scan_notrigger_2(self, x2, y2, step_um):
         # acquire the first spectrum and record the position
         wl, ft = self.acquire_and_get_spectrum()
-        FT = [ft]
+
+        if not active_correct_line_scan:
+            np.save(databackup_path + "spectra/" + '0.npy', ft)
+            self._N_loop = 1
+
         x1 = self.stage_1.pos_um
         y1 = self.stage_2.pos_um
         X = [x1]
@@ -1047,31 +1053,13 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self._n = 0
         self._X = X
         self._Y = Y
-        self._FT = FT
+        self._FT = [ft]
         self._WL = wl
 
         # connect motor
         self.lscn_running.set()
         self.btn_lscn_start.setText("stop scan")
         self._step_one()
-
-        # old for loop version (would cause GUI to freeze) _____________________________________________________________
-        # Scan!
-        # for n in range(npts):
-        #     self.step_right_1(step_x)
-        #     self.step_right_2(step_y)
-        #
-        #     X.append(self.stage_1.pos_um)
-        #     Y.append(self.stage_2.pos_um)
-        #     FT.append(self.acquire_and_get_spectrum()[1])
-        #
-        #     print(X[n], Y[n], f'acquired point {n} of {npts}')
-        #
-        # # convert lists to arrays and return
-        # X = np.array(X)
-        # Y = np.array(Y)
-        # FT = np.array(FT)
-        # return X, Y, wl, FT
 
     def _check_if_ready_for_next(self):
         if self.motor_moving_2.is_set():
@@ -1112,7 +1100,13 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self._X.append(self.stage_1.pos_um)
         self._Y.append(self.stage_2.pos_um)
-        self._FT.append(self.acquire_and_get_spectrum()[1])
+
+        if active_correct_line_scan:
+            self._FT.append(self.acquire_and_get_spectrum()[1])
+        else:
+            np.save(databackup_path + "spectra/" + f'{self._N_loop}.npy', self.acquire_and_get_spectrum()[1])
+            self._N_loop += 1
+
         print(f'acquired point {self._n} of {self._npts}')
 
         self._n += 1
