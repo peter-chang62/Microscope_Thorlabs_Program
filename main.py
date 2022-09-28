@@ -18,7 +18,7 @@ import PyQt5.QtGui as qtg
 edge_limit_buffer_mm = 0.0  # 1 um
 COM1 = "COM4"
 COM2 = "COM6"
-active_correct_line_scan = False
+active_correct_line_scan = True
 databackup_path = r'D:\Microscope\databackup/'
 
 
@@ -846,13 +846,13 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
             # __________________________________________________________________________________________________________
             # below I just shift correct by overlapping the maxima of all the interferograms
+            # comment out this block if you just want to straight up average
+            # ind_ref = np.argmax(x[0])  # maximum of first interferogram
+            # ind_diff = ind_ref - np.argmax(x, axis=1)  # maximum of first - maximum of all the rest
+            # for n, i in enumerate(x):
+            #     x[n] = np.roll(i, ind_diff[n])
             # __________________________________________________________________________________________________________
 
-            ind_ref = np.argmax(x[0])  # maximum of first interferogram
-            ind_diff = ind_ref - np.argmax(x, axis=1)  # maximum of first - maximum of all the rest
-
-            for n, i in enumerate(x):
-                x[n] = np.roll(i, ind_diff[n])
             x = np.mean(x, 0)
 
             ft = fft(x).__abs__()
