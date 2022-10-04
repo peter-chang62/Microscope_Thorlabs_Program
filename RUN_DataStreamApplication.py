@@ -25,14 +25,7 @@ import ProcessingFunctions as pf
 import pyfftw
 import DataStreamApplication as dsa
 import Acquire
-
-NUMBER_OF_CARDS = 2
-assert ((NUMBER_OF_CARDS == 1) or (NUMBER_OF_CARDS == 2)), f"NUMBER_OF_CARDS must be 1 or 2 but got {NUMBER_OF_CARDS}"
-
-if NUMBER_OF_CARDS == 1:
-    from GuiDesigner import Ui_MainWindow
-else:
-    from GuiDesigner_TWO_CARDS import Ui_MainWindow
+from GuiDesigner_TWO_CARDS import Ui_MainWindow
 
 extTrigger = False
 if extTrigger:
@@ -845,11 +838,3 @@ class SharedInfo:
     def __init__(self):
         self.center_ind = None
         self.handle1_initialized = False
-
-# if __name__ == '__main__':
-#     app = qt.QApplication([])
-#     if NUMBER_OF_CARDS == 1:
-#         hey = dsa.Gui()
-#     else:
-#         hey = GuiTwoCards()
-#     app.exec()
