@@ -1,3 +1,5 @@
 TO DO ITEMS: 
 
 1) Right now you have a self._npts telling you how many points you have left in your scan. Verify what the length of self._FT is compared to self._npts and make it so that the for loop fills an array instead of appending to a list for self._FT. This saves a large CPU and memory cost operation at the end of a line scan. 
+
+2) You've connected all the position setting buttons in the imaging tab. It's time to code up the imaging itself now! :) 
