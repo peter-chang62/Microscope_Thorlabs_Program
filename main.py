@@ -570,6 +570,8 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.lcd_ptscn_pos_fs_1.display('%.3f' % pos_fs)
         self.lcd_lscn_pos_um_1.display('%.3f' % pos_um)
         self.lcd_lscn_pos_fs_1.display('%.3f' % pos_fs)
+        self.lcd_img_pos_um_1.display('%.3f' % pos_um)
+        self.lcd_img_pos_fs_1.display('%.3f' % pos_fs)
 
     def update_lcd_pos_2(self, pos_um):
         self.pos_um_2 = pos_um
@@ -578,6 +580,8 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.lcd_ptscn_pos_fs_2.display('%.3f' % pos_fs)
         self.lcd_lscn_pos_um_2.display('%.3f' % pos_um)
         self.lcd_lscn_pos_fs_2.display('%.3f' % pos_fs)
+        self.lcd_img_pos_um_2.display('%.3f' % pos_um)
+        self.lcd_img_pos_fs_2.display('%.3f' % pos_fs)
 
     def update_target_um_1(self):
         target_um = float(self.le_pos_um_1.text())
