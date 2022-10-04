@@ -165,7 +165,7 @@ class MotorInterface:
 
 
 m = MotorInterface(apt.KDC101(COM2))
-m.set_max_vel(5)
+m.set_max_vel(1)
 pos = [4600, 5400]
 b = 0
 while True:
