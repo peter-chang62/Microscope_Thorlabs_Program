@@ -529,6 +529,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.btn_step_left_2.clicked.connect(self.step_left_2)
         self.btn_step_right_2.clicked.connect(self.step_right_2)
         self.btn_lscn_start.clicked.connect(self.start_line_scan_notrigger)
+        self.btn_img_start.clicked.connect(self.start_image_no_trigger)
 
     def connect_update_motor_1(self):
         self.update_motor_thread_1: UpdateMotorThread
@@ -1341,6 +1342,15 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self._n += 1
         self._lscn_step_one()
+
+    def start_image_no_trigger(self):
+        x1 = self.target_img_strt_um_1
+        y1 = self.target_img_strt_um_2
+        x2 = self.target_img_end_um_1
+        y2 = self.target_img_end_um_2
+        step_um = self.step_size_img_um
+
+        self.image_no_trigger(x1, y1, x2, y2, step_um)
 
     def image_no_trigger(self, x1, y1, x2, y2, step_um):
         """
