@@ -1334,6 +1334,27 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self._n += 1
         self._step_one()
 
+    def image_no_trigger(self, x1, y1, x2, y2, step_um):
+        """
+        :param x1: x1 coordinate (um)
+        :param y1: y1 coordinate (um)
+        :param x2: x2 coordinate (um)
+        :param y2: y2 coordinate (um)
+        :param step_um: step size (um)
+        :return:
+
+        (x1, y1) ________________ **
+        |                         |
+        |                         |
+        |                         |
+        |                         |
+        ** __________________ (x2, y2)
+
+        The idea here is to do repetitive line scans, with an update of the spectrum on the line scan tab,
+        and an update of the image on the imaging tab
+        """
+        pass
+
 
 # %%____________________________________________________________________________________________________________________
 # Runnable classes
