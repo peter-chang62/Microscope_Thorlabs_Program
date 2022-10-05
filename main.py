@@ -1241,8 +1241,8 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         x1 = self.stage_1.pos_um
         y1 = self.stage_2.pos_um
-        X = [x1]
-        Y = [y1]
+        # X = [x1]
+        # Y = [y1]
 
         # calculate the step size in x and step size in y
         dx = x2 - x1
@@ -1260,9 +1260,18 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self._step_um = step_um
         self._npts = npts
         self._n = 0
-        self._X = X
-        self._Y = Y
-        self._FT = [ft]
+
+        # self._X = X
+        # self._Y = Y
+        # self._FT = [ft]
+
+        self._X = np.zeros(self._npts + 1)
+        self._Y = np.zeros(self._npts + 1)
+        self._FT = np.zeros((self._npts + 1, len(ft)))
+        self._X[0] = x1
+        self._Y[0] = y1
+        self._FT[0] = ft
+
         self._WL = wl
 
         # connect motor
@@ -1280,9 +1289,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.stop_lscn.clear()
         self.lscn_running.clear()
         self.btn_lscn_start.setText("start scan")
-        self._X = np.array(self._X)
-        self._Y = np.array(self._Y)
-        self._FT = np.array(self._FT)
+        # self._X = np.array(self._X)
+        # self._Y = np.array(self._Y)
+        # self._FT = np.array(self._FT)
 
     def _step_one(self):
         if self.stop_lscn.is_set():  # check for stop event
@@ -1307,11 +1316,15 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             self.lscn_stop_finished()
             return
 
-        self._X.append(self.stage_1.pos_um)
-        self._Y.append(self.stage_2.pos_um)
+        # self._X.append(self.stage_1.pos_um)
+        # self._Y.append(self.stage_2.pos_um)
+
+        self._X[self._n + 1] = self.stage_1.pos_um
+        self._Y[self._n + 1] = self.stage_2.pos_um
 
         if active_correct_line_scan:
-            self._FT.append(self.acquire_and_get_spectrum()[1])
+            # self._FT.append(self.acquire_and_get_spectrum()[1])
+            self._FT[self._n + 1] = self.acquire_and_get_spectrum()[1]
         else:
             np.save(databackup_path + "spectra/" + f'{self._N_loop}.npy', self.acquire_and_get_spectrum()[1])
             self._N_loop += 1
