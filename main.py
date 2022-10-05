@@ -1448,6 +1448,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.stop_img.clear()
         self.img_running.clear()
         self.btn_img_start.setText("start scan")
+        self.signal.finished.disconnect(self._img_next_step)
 
 
 # %%____________________________________________________________________________________________________________________
