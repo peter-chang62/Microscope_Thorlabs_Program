@@ -286,7 +286,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.motor_moving_1 = threading.Event()
         self.motor_moving_2 = threading.Event()
         self.lscn_running = threading.Event()
+        self.img_running = threading.Event()
         self.stop_lscn = threading.Event()
+        self.stop_img = threading.Event()
 
         self.target_ptscn_um_1 = None
         self.target_ptscn_um_2 = None
@@ -325,7 +327,20 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self._Y = None
         self._FT = None
         self._WL = None
+
+        self._N_linescans = None
+        self._n_img = None
+        self._x1_img = None
+        self._x2_img = None
+        self._y1_img = None
+        self._y2_img = None
+        self._step_um_img = None
+        self._scan_img = None
+        self._IMG = None
         # ______________________________________________________________________________________________________________
+
+        # a signal to use inside the main Gui
+        self.signal = Signal()
 
     @property
     def step_size_ptscn_fs_1(self):
@@ -1206,6 +1221,9 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         if self.lscn_running.is_set():  # scan already running
             self.stop_lscn.set()  # stop the line scan
             return
+        elif self.img_running.is_set():  # imaging already running
+            self.stop_img.set()
+            return
         elif self.motor_moving_1.is_set():  # motor 1 currently in use
             raise_error(self.ErrorWindow, "stop stage 1 first")
             return
@@ -1261,10 +1279,6 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self._npts = npts
         self._n = 0
 
-        # self._X = X
-        # self._Y = Y
-        # self._FT = [ft]
-
         self._X = np.zeros(self._npts + 1)
         self._Y = np.zeros(self._npts + 1)
         self._FT = np.zeros((self._npts + 1, len(ft)))
@@ -1277,23 +1291,21 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         # connect motor
         self.lscn_running.set()
         self.btn_lscn_start.setText("stop scan")
-        self._step_one()
+        self._lscn_step_one()
 
     def _check_if_ready_for_next(self):
         if self.motor_moving_2.is_set():
             self.update_motor_thread_2.signal.finished.connect(self._check_if_ready_for_next)
         else:
-            self._step_two()
+            self._lscn_step_two()
 
     def lscn_stop_finished(self):
         self.stop_lscn.clear()
         self.lscn_running.clear()
         self.btn_lscn_start.setText("start scan")
-        # self._X = np.array(self._X)
-        # self._Y = np.array(self._Y)
-        # self._FT = np.array(self._FT)
+        self.signal.finished.emit(None)
 
-    def _step_one(self):
+    def _lscn_step_one(self):
         if self.stop_lscn.is_set():  # check for stop event
             self.lscn_stop_finished()
             return
@@ -1311,19 +1323,15 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         else:
             self.lscn_stop_finished()
 
-    def _step_two(self):
+    def _lscn_step_two(self):
         if self.stop_lscn.is_set():  # check for stop event
             self.lscn_stop_finished()
             return
-
-        # self._X.append(self.stage_1.pos_um)
-        # self._Y.append(self.stage_2.pos_um)
 
         self._X[self._n + 1] = self.stage_1.pos_um
         self._Y[self._n + 1] = self.stage_2.pos_um
 
         if active_correct_line_scan:
-            # self._FT.append(self.acquire_and_get_spectrum()[1])
             self._FT[self._n + 1] = self.acquire_and_get_spectrum()[1]
         else:
             np.save(databackup_path + "spectra/" + f'{self._N_loop}.npy', self.acquire_and_get_spectrum()[1])
@@ -1332,7 +1340,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         print(f'acquired point {self._n} of {self._npts}')
 
         self._n += 1
-        self._step_one()
+        self._lscn_step_one()
 
     def image_no_trigger(self, x1, y1, x2, y2, step_um):
         """
@@ -1353,7 +1361,83 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         The idea here is to do repetitive line scans, with an update of the spectrum on the line scan tab,
         and an update of the image on the imaging tab
         """
-        pass
+
+        if self.lscn_running.is_set():  # scan already running
+            self.stop_lscn.set()  # stop the line scan
+            return
+        elif self.img_running.is_set():  # imaging already running
+            self.stop_img.set()
+            return
+        elif self.motor_moving_1.is_set():  # motor 1 currently in use
+            raise_error(self.ErrorWindow, "stop stage 1 first")
+            return
+        elif self.motor_moving_2.is_set():  # motor 2 curently in use
+            raise_error(self.ErrorWindow, "stop stage 2 first")
+            return
+
+        dx = x2 - x1
+        dy = y2 - y1
+        if dx >= dy:  # doing an x scan
+            self._N_linescans = dx / step_um
+            self._scan_img = 0
+        else:  # dx < dy -> doing a y scan
+            self._N_linescans = dy / step_um
+            self._scan_img = 1
+
+        if self._scan_img == 0:  # x scan
+            self.line_scan_notrigger(x1, y1, x2, y1, step_um)
+        else:  # y scan
+            self.line_scan_notrigger(x1, y1, x1, y2, step_um)
+
+        # store variables
+        self._n_img = 0
+        self._x1_img = x1
+        self._y1_img = y1
+        self._x2_img = x2
+        self._y2_img = y2
+        self._step_um_img = step_um
+        if self._scan_img == 0:  # x scan
+            self._IMG = np.zeros((len(self._FT), self._N_linescans + 1, len(self._FT[0])))
+        else:  # y scan
+            self._IMG = np.zeros((self._N_linescans + 1, len(self._FT), len(self._FT[0])))
+
+        # connect signal
+        self.signal.finished.connect(self._img_next_step)
+        self.img_running.set()
+        self.btn_img_start.setText("stop scan")
+
+    def _img_next_step(self):
+        if self.stop_img.set():
+            self.img_stop_finished()
+            return
+
+        if self._n_img < self._N_linescans:
+            if self._scan_img == 0:  # x scan
+                self.line_scan_notrigger(self._x1_img,
+                                         self.y1_img + self._step_um_img,
+                                         self._x2_img,
+                                         self.y1_img + self._step_um_img,
+                                         self._step_um_img)
+                self._IMG[:, self._n_img + 1, :] = self._FT
+                self.y1_img += self._step_um_img
+
+            else:  # y scan
+                self.line_scan_notrigger(self._x1_img + self._step_um_img,
+                                         self.y1_img,
+                                         self._x1_img + self._step_um_img,
+                                         self.y2_img,
+                                         self._step_um_img)
+                self._IMG[self._n_img + 1, :, :] = self._FT
+                self._x1_img += self._step_um_img
+
+            self._n_img += 1
+        else:
+            self.img_stop_finished()
+
+    def img_stop_finished(self):
+        self.stop_img.clear()
+        self.img_running.clear()
+        self.btn_img_start.setText("start scan")
 
 
 # %%____________________________________________________________________________________________________________________
