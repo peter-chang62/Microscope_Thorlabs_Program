@@ -1439,7 +1439,6 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self.signal.finished.disconnect(self._initialize_IMG_array)  # disconnect this function after execution
         self.signal.finished.connect(self._img_next_step)  # and connect to the new function
-        self._img_next_step()
 
     def _img_next_step(self):
         if self.stop_img.is_set():
