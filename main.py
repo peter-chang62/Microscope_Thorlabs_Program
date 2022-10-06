@@ -1279,6 +1279,14 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         step_y = step_um * ry
         npts = np.ceil(r / step_um)
 
+        # round off: if the step is less than 10 nm then it's just stage error. This caused me a lot of issues
+        # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
+        # nm ~ 0, the finished flag returned before it was connected
+        if abs(step_x * 1e3) < 10:
+            step_x = 0.
+        if abs(step_y * 1e3) < 10:
+            step_y = 0.
+
         # store variables
         self._step_x = step_x
         self._step_y = step_y
