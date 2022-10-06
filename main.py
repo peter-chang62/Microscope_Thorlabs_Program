@@ -14,6 +14,7 @@ import RUN_DataStreamApplication as dsa
 import mkl_fft
 import PlotWidgets as pw
 import PyQt5.QtGui as qtg
+from scipy.integrate import simps
 
 edge_limit_buffer_mm = 0.0  # 1 um
 COM1 = "COM4"
@@ -289,6 +290,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.img_running = threading.Event()
         self.stop_lscn = threading.Event()
         self.stop_img = threading.Event()
+        self.calling_from_image = threading.Event()
 
         self.target_ptscn_um_1 = None
         self.target_ptscn_um_2 = None
@@ -1220,13 +1222,14 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
     # __________________________________________________________________________________________________________________
     def line_scan_notrigger(self, x1, y1, x2, y2, step_um):
         if self.img_running.is_set():  # imaging already running
-            self.stop_img.set()
-            # the line scan will return with the finished signal which will go into the imaging loop. At that point
-            # the stop_img flag will be detected and will send the program to img_stop_finished() where the finished
-            # signal will be disconnected
-            if self.lscn_running.is_set():  # scan already running
-                self.stop_lscn.set()  # stop the line scan
-                return
+            if not self.calling_from_image.is_set():
+                self.stop_img.set()
+                # the line scan will return with the finished signal which will go into the imaging loop. At that point
+                # the stop_img flag will be detected and will send the program to img_stop_finished() where the finished
+                # signal will be disconnected
+                if self.lscn_running.is_set():  # scan already running
+                    self.stop_lscn.set()  # stop the line scan
+                    return
         elif self.lscn_running.is_set():  # scan already running
             self.stop_lscn.set()  # stop the line scan
             return
@@ -1398,10 +1401,10 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         dx = x2 - x1
         dy = y2 - y1
         if dx >= dy:  # doing line scans along x, so dy / step_um line scans
-            self._N_linescans = int(np.ceil(dy / step_um))
+            self._N_linescans = int(np.floor(dy / step_um))
             self._scan_img = 0
         else:  # doing line scans along y, so dx / step_um line scans
-            self._N_linescans = int(np.ceil(dx / step_um))
+            self._N_linescans = int(np.floor(dx / step_um))
             self._scan_img = 1
 
         if self._scan_img == 0:  # x scan
@@ -1420,6 +1423,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         # connect signal
         self.signal.finished.connect(self._initialize_IMG_array)
         self.img_running.set()
+        self.calling_from_image.set()
         self.btn_img_start.setText("stop scan")
 
     def _initialize_IMG_array(self):
@@ -1428,17 +1432,10 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             self._XPOS = np.zeros((len(self._FT), self._N_linescans + 1))
             self._YPOS = np.zeros((len(self._FT), self._N_linescans + 1))
 
-            self._XPOS[:, 0] = self._X
-            self._YPOS[:, 0] = self._Y
-            self._IMG[:, 0, :] = self._FT
         else:  # y scan
             self._IMG = np.zeros((self._N_linescans + 1, len(self._FT), len(self._FT[0])))
             self._XPOS = np.zeros((self._N_linescans + 1, len(self._FT)))
             self._YPOS = np.zeros((self._N_linescans + 1, len(self._FT)))
-
-            self._XPOS[0, :] = self._X
-            self._YPos[0, :] = self._Y
-            self._IMG[0, :, :] = self._FT
 
         self.signal.finished.disconnect(self._initialize_IMG_array)  # disconnect this function after execution
         self.signal.finished.connect(self._img_next_step)  # and connect to the new function
@@ -1449,6 +1446,20 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
             self.img_stop_finished()
             return
 
+        # save data from the last scan
+        if self._scan_img == 0:  # x scan
+            self._IMG[:, self._n_img, :] = self._FT
+            self._XPOS[:, self._n_img] = self._X
+            self._YPOS[:, self._n_img] = self._Y
+            print(f'________________ acquired image point {self._n_img} of {self._N_linescans} ________________')
+
+        else:  # Y scan
+            self._IMG[self._n_img, :, :] = self._FT
+            self._XPOS[self._n_img, :] = self._X
+            self._YPOS[self._n_img, :] = self._Y
+            print(f'________________ acquired image point {self._n_img} of {self._N_linescans} ________________')
+
+        # start the next scan (if there is one)
         if self._n_img < self._N_linescans:
             if self._scan_img == 0:  # x scan
                 self.line_scan_notrigger(self._x1_img,
@@ -1456,32 +1467,24 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
                                          self._x2_img,
                                          self._y1_img + self._step_um_img,
                                          self._step_um_img)
-                self._IMG[:, self._n_img + 1, :] = self._FT
-                self._XPOS[:, self._n_img + 1] = self._X
-                self._YPOS[:, self._n_img + 1] = self._Y
-
                 self._y1_img += self._step_um_img
 
             else:  # y scan
                 self.line_scan_notrigger(self._x1_img + self._step_um_img,
                                          self._y1_img,
                                          self._x1_img + self._step_um_img,
-                                         self.y2_img,
+                                         self._y2_img,
                                          self._step_um_img)
-                self._IMG[self._n_img + 1, :, :] = self._FT
-                self._XPOS[self._n_img + 1, :] = self._X
-                self._YPOS[self._n_img + 1, :] = self._Y
-
                 self._x1_img += self._step_um_img
 
             self._n_img += 1
-            print(f'________________ acquired image point {self._n_img} of {self._N_linescans} ________________')
         else:
             self.img_stop_finished()
 
     def img_stop_finished(self):
         self.stop_img.clear()
         self.img_running.clear()
+        self.calling_from_image.clear()
         self.btn_img_start.setText("start scan")
         self.signal.finished.disconnect(self._img_next_step)
 
