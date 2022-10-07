@@ -10,10 +10,11 @@ import MotorClassFromAptProtocolConnor as apt
 import ProcessingFunctions as pf
 import numpy as np
 import sys
-import RUN_DataStreamApplication as dsa
+import RUN_DataStreamApplication as rdsa
 import mkl_fft
 import PlotWidgets as pw
 import PyQt5.QtGui as qtg
+import DataStreamApplication as dsa
 from scipy.integrate import simps
 
 edge_limit_buffer_mm = 0.0  # 1 um
@@ -61,6 +62,37 @@ def T_fs_to_dist_um(value_fs):
     :return value_um: delta x in micron
     """
     return (c_mks * value_fs / 2) * 1e-9
+
+
+def connect_tracking_stream_update(self):
+    # this needs to be called every time the card_stream is initialized
+    # so it's easier to place it in a separate function
+    # the original one prints the update out to terminal / console
+
+    # super().connect_tracking_stream_update_signals()
+    self.trackingstream.signal.progress.connect(self.displaymsg)
+    self.trackingstream.signal.finished.connect(self.displaymsg)
+
+    if not self.chkbx_save_data.isChecked():
+        self.workBuffer_initiated_event.wait()
+
+        self.contPlotUpdate = dsa.UpdateDisplay(self, self.wait_time)
+        self.contPlotUpdate.start()
+
+        self.contPlotUpdate.signal.progress.connect(self.updateDisplay)
+
+
+def connect_tracking_stream_update_nodisplay(self):
+    # this needs to be called every time the card_stream is initialized
+    # so it's easier to place it in a separate function
+    # the original one prints the update out to terminal / console
+
+    # super().connect_tracking_stream_update_signals()
+    self.trackingstream.signal.progress.connect(self.displaymsg)
+    self.trackingstream.signal.finished.connect(self.displaymsg)
+
+    # connect to new function
+    pass
 
 
 class ErrorWindow(qt.QWidget, Ui_Form):
@@ -176,18 +208,18 @@ class MotorInterface:
 # ______________________________________________________________________________________________________________________
 # This class is essentially the imaging version of the StreamWithGui class from RUN_DataStreamApplication.py
 # ______________________________________________________________________________________________________________________
-class StreamWithGui(dsa.StreamWithGui):
+class StreamWithGui(rdsa.StreamWithGui):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
-class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
+class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     def __init__(self):
         qt.QMainWindow.__init__(self)
-        dsa.Ui_MainWindow.__init__(self)
+        rdsa.Ui_MainWindow.__init__(self)
         self.setupUi(self)
 
-        self.shared_info = dsa.SharedInfo()
+        self.shared_info = rdsa.SharedInfo()
 
         self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_CARD1.ini',
                                      inifile_acquire='include/Acquire_CARD1.ini',
@@ -1362,8 +1394,120 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
     # __________________________________________________________________________________________________________________
     # Line scan with trigger
     # __________________________________________________________________________________________________________________
+    # this function will be called from _check_if_at_start instead of _line_scan_notrigger_2
+    def _line_scan_withtrigger(self, x2, y2, step_um):
+        x1 = self.stage_1.pos_um
+        y1 = self.stage_2.pos_um
 
-    pass
+        # calculate the step size in x and step size in y
+        dx = x2 - x1
+        dy = y2 - y1
+        r = np.sqrt(dx ** 2 + dy ** 2)
+        rx = dx / r  # rhat = (rx, ry), note that rx and / or ry can be negative
+        ry = dy / r
+        step_x = step_um * rx  # step_x, step_y can be negative -> we will only call step_right in the loop below!
+        step_y = step_um * ry
+        npts = np.ceil(r / step_um)
+
+        # round off: if the step is less than 10 nm then it's just stage error. This caused me a lot of issues
+        # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
+        # nm ~ 0, the finished flag returned before it was connected
+        if abs(step_x * 1e3) < 10:
+            step_x = 0.
+        if abs(step_y * 1e3) < 10:
+            step_y = 0.
+
+        if np.all([step_x, step_y]):
+            raise_error(self.ErrorWindow, "for triggered linescans, only one stage can move")
+            return
+
+        # store variables
+        self._step_x = step_x
+        self._step_y = step_y
+        self._step_um = step_um
+        self._npts = int(npts)
+        self._n = 0
+
+        self._X = np.zeros(self._npts + 1)
+        self._Y = np.zeros(self._npts + 1)
+        self._FT = np.zeros((self._npts + 1, len(ft)))
+
+        self._X[0] = x1
+        self._Y[0] = y1
+
+        ppifg = self.active_stream.ppifg
+        center = ppifg // 2
+        Nyq_Freq = center * self.frep
+        translation = (self.Nyquist_Window - 1) * Nyq_Freq
+        nu = np.linspace(0, Nyq_Freq, center) + translation
+        wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
+        self._WL = wl
+
+        # 1) adjust the streaming buffer size for the line scan to acquire_npts (assuming user set it to N * ppifg)
+        # 2) calculate scan velocity and end of movement position for the stage
+        # 3) set external trigger to True
+        # 4) reconnect tracking_stream_update
+        # 5) set Event flags and button labels
+        # 6) start scan
+
+        # 1)
+        self.active_stream.apply_ppifg(target_NPTS=self.active_stream.acquire_npts)
+
+        # 2)
+        T = self.active_stream.acquire_npts * 1e-9  # time of acquisition
+        x = 1e-3  # 1 um (distance to move during time of acquisition in mm)
+        vel_mm_s = x / T
+        if abs(step_x) > 0:
+            self.stage_1.set_max_vel(vel_mm_s)
+        elif abs(step_y) > 0:
+            self.stage_2.set_max_vel(vel_mm_s)
+        else:
+            raise_error(self.ErrorWindow, "step_x and step_y are zero!")
+
+        # 3)
+        dsa.setExtTrigger(self.active_stream.inifile_stream, 1)
+
+        # 4)
+        self.active_stream.connect_tracking_stream_update = connect_tracking_stream_update_nodisplay
+        self.active_stream.card_stream.signal.progress.connect(self.DoAnalysis)
+        self.active_stream.card_stream.signal.finished.connect(self.lscn_with_trigger_stop_finished)
+
+        # 5)
+        self.lscn_running.set()
+        self.btn_lscn_start.setText("stop scan")
+
+        # 6)
+        self.active_stream.stream_data()
+
+    def DoAnalysis(self):
+        x = np.frombuffer(self.active_stream.card_stream.stream_info.WorkBuffer, '<h')
+
+        ppifg = self.active_stream.ppifg
+        center = ppifg // 2
+        x = x[np.argmax(x[:ppifg]):][center:]
+        N = len(x) // self.active_stream.ppifg
+        x = x[:N * self.active_stream.ppifg]
+        x.resize((N, self.active_stream.ppifg))
+        x = np.mean(x, 0)
+        ft = fft(x).__abs__()
+
+        if self.Nyquist_Window % 2 == 0:
+            ft = ft[:center]  # negative frequency side
+        else:
+            ft = ft[center:]  # positive frequency side
+
+        self._FT[self._n] = ft
+        self.curve_lscn.setData(self._WL, ft)
+
+    def lscn_with_trigger_stop_finished(self):
+        self.stop_lscn.clear()
+        self.lscn_running.clear()
+        self.btn_lscn_start.setText("start scan")
+        self.signal.finished.emit(None)
+
+        self.stage_1.set_max_vel(1)
+        self.stage_2.set_max_vel(1)
+        self.active_stream.connect_tracking_stream_update = connect_tracking_stream_update
 
     # __________________________________________________________________________________________________________________
     # Image with or without trigger
