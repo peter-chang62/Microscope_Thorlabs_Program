@@ -1017,8 +1017,8 @@ class CardStreamSaveData(CardStream):
         self.stream_info.SegmentCountDown = self.acq['SegmentCount']
         self.stream_info.SplitTail = False
 
-        # this card stream now only saves the data and does not plot it, so I don't need these
-        # buffers any more
+        # ______________________________________________________________________________________________________________
+        # this card stream now only saves the data and does not plot it, so I don't need these buffers any more
 
         # to avoid Access Violations, we need a copy of the WorkBuffer
         # for this Gui Application, the work buffer will not be larger
@@ -1028,6 +1028,8 @@ class CardStreamSaveData(CardStream):
         # gc.collect()
         # self.parent.copyOfWorkBuffer1 = np.zeros_like(buffer1)
         # self.parent.copyOfWorkBuffer2 = np.zeros_like(buffer1)
+        # ______________________________________________________________________________________________________________
+
         self.parent.workBuffer_initiated_event.set()
 
         # what if I did this?
