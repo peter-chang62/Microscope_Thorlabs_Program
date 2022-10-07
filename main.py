@@ -1489,9 +1489,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     def _line_scan_withtrigger_2(self):
         # 6)
         if abs(self._step_x) > 0:
-            self.move_to_pos_1(target_um=self._x2)
+            self.move_to_pos_1(target_um=self._x2 + self._step_x)
         elif abs(self._step_y) > 0:
-            self.move_to_pos_2(target_um=self._y2)
+            self.move_to_pos_2(target_um=self._y2 + self._step_y)
         else:
             raise_error(self.ErrorWindow, "both step_x and step_y are zero!")
             return
@@ -1518,6 +1518,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self._FT[self._n] = ft
         self.curve_lscn.setData(self._WL, ft)
+
+        if self._n == len(self._FT) - 1:
+            self.active_stream.terminate()
 
     def lscn_with_trigger_stop_finished(self):
         self.stop_lscn.clear()
