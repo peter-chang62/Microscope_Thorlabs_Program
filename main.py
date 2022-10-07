@@ -1217,8 +1217,7 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
         self.line_scan_notrigger(x1, y1, x2, y2, step_um)
 
     # __________________________________________________________________________________________________________________
-    # Below we do all scans without trigger. This is significantly easier than continuous move because no streaming is
-    # necessary
+    # Line scan without trigger
     # __________________________________________________________________________________________________________________
     def line_scan_notrigger(self, x1, y1, x2, y2, step_um):
         if self.img_running.is_set():  # imaging already running
@@ -1359,6 +1358,10 @@ class GuiTwoCards(qt.QMainWindow, dsa.Ui_MainWindow):
 
         self._n += 1
         self._lscn_step_one()
+
+    # __________________________________________________________________________________________________________________
+    # Image without trigger
+    # __________________________________________________________________________________________________________________
 
     def start_image_no_trigger(self):
         x1 = self.target_img_strt_um_1
