@@ -736,6 +736,8 @@ class CardStream():
             if loop_count & 1:
                 buffer = buffer2
 
+                # TODO I think you can delete this, I forget what you were trying to do
+                #  but it doesn't do anything anymore
                 copyOfWorkBuffer = self.parent.copyOfWorkBuffer2
                 self.parent.plotCopyOfWorkBuffer = self.parent.copyOfWorkBuffer1
             else:
