@@ -1430,7 +1430,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self._X = np.zeros(self._npts + 1)
         self._Y = np.zeros(self._npts + 1)
-        self._FT = np.zeros((self._npts + 1, len(ft)))
 
         self._X[0] = x1
         self._Y[0] = y1
@@ -1442,41 +1441,62 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         nu = np.linspace(0, Nyq_Freq, center) + translation
         wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
         self._WL = wl
+        self._FT = np.zeros((self._npts + 1, center))
 
         # 1) adjust the streaming buffer size for the line scan to acquire_npts (assuming user set it to N * ppifg)
-        # 2) calculate scan velocity and end of movement position for the stage
-        # 3) set external trigger to True
-        # 4) reconnect tracking_stream_update
-        # 5) set Event flags and button labels
-        # 6) start scan
+        # 2) set external trigger to True
+        # 3) reconnect tracking_stream_update
+        # 4) set Event flags and button labels
+        # 5)
+        #   a) calculate scan velocity and end of movement position for the stage.
+        #   b) Set the trigger intervals
+        #   c) back the stage up by step_x or step_y so the first data point is taken at the start line
+        # 6) move the motor
+        # 7) start stream
 
         # 1)
         self.active_stream.apply_ppifg(target_NPTS=self.active_stream.acquire_npts)
 
         # 2)
-        T = self.active_stream.acquire_npts * 1e-9  # time of acquisition
-        x = 1e-3  # 1 um (distance to move during time of acquisition in mm)
-        vel_mm_s = x / T
-        if abs(step_x) > 0:
-            self.stage_1.set_max_vel(vel_mm_s)
-        elif abs(step_y) > 0:
-            self.stage_2.set_max_vel(vel_mm_s)
-        else:
-            raise_error(self.ErrorWindow, "step_x and step_y are zero!")
-
-        # 3)
         dsa.setExtTrigger(self.active_stream.inifile_stream, 1)
 
-        # 4)
+        # 3)
         self.active_stream.connect_tracking_stream_update = connect_tracking_stream_update_nodisplay
         self.active_stream.card_stream.signal.progress.connect(self.DoAnalysis)
         self.active_stream.card_stream.signal.finished.connect(self.lscn_with_trigger_stop_finished)
 
-        # 5)
+        # 4)
         self.lscn_running.set()
         self.btn_lscn_start.setText("stop scan")
 
+        # 5)
+        T = self.active_stream.acquire_npts * 1e-9  # time of acquisition
+        x = 1e-3  # 1 um (distance to move during time of acquisition in mm)
+        vel_mm_s = x / T
+        if abs(step_x) > 0:
+            self.stage_1.set_max_vel(vel_mm_s)  # set scan velocity for stage 1
+            self.stage_1.step_um = step_x  # set trigger interval for stage 1
+            self.step_left_1(step_um=step_x)  # back up step_x so first data point is taken at the start line
+            self.update_motor_thread_1.signal.finished.connect(self._line_scan_withtrigger_2)
+        elif abs(step_y) > 0:
+            self.stage_2.set_max_vel(vel_mm_s)  # set scan velocity for stage 2
+            self.stage_2.step_um = step_y  # set trigger interval for stage 2
+            self.step_left_2(step_um=step_y)  # back up step_y so first data point is taken at the start line
+            self.update_motor_thread_2.signal.finished.connect(self._line_scan_withtrigger_2)
+        else:
+            raise_error(self.ErrorWindow, "step_x and step_y are zero!")
+
+    def _line_scan_withtrigger_2(self):
         # 6)
+        if abs(self._step_x) > 0:
+            self.move_to_pos_1(target_um=self._x2)
+        elif abs(self._step_y) > 0:
+            self.move_to_pos_2(target_um=self._y2)
+        else:
+            raise_error(self.ErrorWindow, "both step_x and step_y are zero!")
+            return
+
+        # 7)
         self.active_stream.stream_data()
 
     def DoAnalysis(self):
