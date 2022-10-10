@@ -763,6 +763,7 @@ class CardStream():
 
             if work_buffer_active:
                 self.signal.progress.emit(None)
+                # print("work buffer signal emitted!")
 
                 # save temporarily for plotting
                 # this actually copies the work buffer's content into a second array

@@ -374,7 +374,11 @@ class StreamWithGui(dsa.Stream):
         if self.streaming_buffer_size_to_set is not None:
             self.app["BufferSize"] = self.streaming_buffer_size_to_set
 
-    def stream_data(self):
+    def stream_data(self, *args,
+                    connect_to_progress_fcts=None,
+                    connect_to_finish_fcts=None,
+                    live_update_plot=True,
+                    fcts_call_before_stream=None):
         """
         This overrides the stream_data method in Stream(). It adds the option to save data by running
         CardStreamSaveData instead of CardStream. It is otherwise the same as stream_data in Stream.
@@ -455,6 +459,14 @@ class StreamWithGui(dsa.Stream):
                                               self.stream_error_event,
                                               self.g_segmentCounted,
                                               self.g_cardTotalData, self)
+            if connect_to_progress_fcts is not None:
+                assert isinstance(connect_to_progress_fcts, list)
+                [self.card_stream.signal.progress.connect(i) for i in connect_to_progress_fcts]
+
+            if connect_to_finish_fcts is not None:
+                assert isinstance(connect_to_finish_fcts, list)
+                [self.card_stream.signal.finished.connect(i) for i in connect_to_finish_fcts]
+
         self.connect_card_stream_update()
         self._a1 = self.card_stream._a1
         self._a2 = self.card_stream._a2
@@ -494,7 +506,11 @@ class StreamWithGui(dsa.Stream):
         # it does enter the while loop of CardStream.run
         # ______________________________________________________________________________________________________________
 
-        # CardStream.run waits for this flag before running the loop that transfers data to RAM
+        if fcts_call_before_stream is not None:
+            assert isinstance(fcts_call_before_stream, list)
+            [i() for i in fcts_call_before_stream]
+
+        # CardStream.run waits for this flag before running the loop that 6transfers data to RAM
         self.stream_started_event.set()
 
         # print("I can still get by setting this flag and call the next function though ...")
@@ -503,7 +519,7 @@ class StreamWithGui(dsa.Stream):
         del self.trackingstream
         gc.collect()
         self.trackingstream = dsa.TrackStreamProgress(self, thread_cardstream)
-        self.connect_tracking_stream_update()
+        self.connect_tracking_stream_update(live_update_plot=live_update_plot)
         thread_trackstream = threading.Thread(target=self.trackingstream.run)
         thread_trackstream.start()  # this loop updates the amount of data streamed to the Gui, and checks for errors
         # or stream abort
@@ -566,7 +582,7 @@ class StreamWithGui(dsa.Stream):
             # and the handle is released
             self.terminate()
 
-    def connect_tracking_stream_update(self):
+    def connect_tracking_stream_update(self, *args, live_update_plot=True):
         # this needs to be called every time the card_stream is initialized
         # so it's easier to place it in a separate function
         # the original one prints the update out to terminal / console
@@ -575,7 +591,7 @@ class StreamWithGui(dsa.Stream):
         self.trackingstream.signal.progress.connect(self.displaymsg)
         self.trackingstream.signal.finished.connect(self.displaymsg)
 
-        if not self.chkbx_save_data.isChecked():
+        if (not self.chkbx_save_data.isChecked()) and live_update_plot:
             self.workBuffer_initiated_event.wait()
 
             self.contPlotUpdate = dsa.UpdateDisplay(self, self.wait_time)
@@ -757,7 +773,7 @@ class StreamWithGui(dsa.Stream):
             self.le_ppifg.setText(str(npts_float))
             self.ppifg = npts_int
 
-    def apply_ppifg(self, *args, target_NPTS=None):
+    def apply_ppifg(self, *args, target_NPTS=None, prep_walk_correction=True):
         if self.ppifg is None:
             dsa.raise_error(self.ErrorWindow, "no ppifg yet")
             return
@@ -781,10 +797,11 @@ class StreamWithGui(dsa.Stream):
         self.le_ppifg.setText(str(self.ppifg))
         self.center_ind = self.ppifg
 
-        section = self.single_acquire_array[self.ppifg - self._nplot // 2:self.ppifg + self._nplot // 2]
-        ind = (abs(section - np.mean(section)) > self._level - np.mean(section)).nonzero()[0]
-        self._ind_old = None
-        self._N_ind = len(ind)
+        if prep_walk_correction:
+            section = self.single_acquire_array[self.ppifg - self._nplot // 2:self.ppifg + self._nplot // 2]
+            ind = (abs(section - np.mean(section)) > self._level - np.mean(section)).nonzero()[0]
+            self._ind_old = None
+            self._N_ind = len(ind)
 
     def save(self):
         if self.data_storage_buffer is None:
