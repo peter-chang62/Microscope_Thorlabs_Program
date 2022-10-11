@@ -1539,19 +1539,21 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
     def DoAnalysis(self):
         print(self._n)
-        if self._n == 0:
+        if self._n == 0:  # throw out zero, honestly I just realized this is redundant
             self._n += 1
             return  # skip
 
-        if self._n % 2 == 0:
+        if self._n % 2 == 0:  # throw out evens
             self._n += 1
             return  # skip
 
         if self._h == len(self._FT):
+            self._h += 1
             return  # skip
         elif self._h > len(self._FT):
             print("something went wrong")
             raise_error(self.ErrorWindow, "something went wrong")
+            self._h += 1
             return  # skip
 
         x = self.active_stream.card_stream.stream_info.WorkBuffer[:-64]
