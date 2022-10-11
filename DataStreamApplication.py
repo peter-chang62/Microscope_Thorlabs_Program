@@ -762,12 +762,12 @@ class CardStream():
                     break
 
             if work_buffer_active:
-                self.signal.progress.emit(None)
-                # print("work buffer signal emitted!")
-
                 # save temporarily for plotting
                 # this actually copies the work buffer's content into a second array
                 copyOfWorkBuffer[:] = self.stream_info.WorkBuffer[:]
+
+                self.signal.progress.emit(copyOfWorkBuffer)
+                # print("work buffer signal emitted!")
 
             # Wait for the DMA transfer on the current buffer to complete so we can loop back around to start a new one.
             # Calling thread will sleep until the transfer completes

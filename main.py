@@ -350,8 +350,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # a signal to use inside the main Gui
         self.signal = Signal()
 
-        dsa.setSegmentSize(self.active_stream.inifile_stream, -1)
-
     @property
     def step_size_ptscn_fs_1(self):
         return dist_um_to_T_fs(self.step_size_ptscn_um_1)
@@ -1460,22 +1458,19 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self._WL = wl
         self._FT = np.zeros((self._npts + 1, center))
 
-        # 1) adjust the streaming buffer size for the line scan to acquire_npts (assuming user set it to N * ppifg)
-        # 2) set external trigger to True
-        # 3) reconnect tracking_stream_update
-        # 4) set Event flags and button labels
-        # 5)
-        #   a) calculate scan velocity and end of movement position for the stage.
-        #   b) Set the trigger intervals
-        #   c) back the stage up by step_x or step_y so the first data point is taken at the start line
-        # 6) move the motor
-        # 7) start stream
-
         # 1)
-        self.active_stream.apply_ppifg(target_NPTS=self.active_stream.acquire_npts + 32, prep_walk_correction=False)
+        # this sets the buffer size in bytes
+        # the time stamp is 64 samples (128 bytes) long!
+
+        # samples = self.active_stream.acquire_npts + 64
+        samples = self.active_stream.acquire_npts + 32
+        self.active_stream.apply_ppifg(target_NBYTES=samples * 2,
+                                       prep_walk_correction=False)
 
         # 2)
-        segmentsize = self.active_stream.acquire_npts * 2 + 64
+        # this sets the sample size of each segment (not byte size!)
+        # segmentsize = self.active_stream.acquire_npts
+        segmentsize = self.active_stream.acquire_npts * 2
         dsa.setExtTrigger(self.active_stream.inifile_stream, 1)
         dsa.setSegmentSize(self.active_stream.inifile_stream, segmentsize)
 
@@ -1487,20 +1482,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.lscn_running.set()
         self.btn_lscn_start.setText("stop scan")
 
-        # 5)
-        # T = self.active_stream.acquire_npts * 1e-9  # time of acquisition
-        # x = 1e-3  # 1 um (distance to move during time of acquisition in mm)
-        # vel_mm_s = x / T
-        # self._vel_mm_s = vel_mm_s
-
         self._vel_mm_s = step_um * 1e-3
-
-        # self._vel_mm_s = 5e-3  # 5 um per second
-        # T_bw_trigg_ms = step_um * 1e3 / (self._vel_mm_s * 1e3)
-        # if T_bw_trigg_ms <= min([self.stage_1.pulse_width_ms, self.stage_2.pulse_width_ms]):
-        #     raise_error(self.ErrorWindow, "scan velocity is too fast!")
-        #     self.lscn_with_trigger_stop_finished()
-        #     return
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
@@ -1518,13 +1500,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         if abs(self._step_x) > 0:
             def func():
                 self.stage_1.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 1
-                self.move_to_pos_1(target_um=self._x2 + self._step_x * 3,
+                self.move_to_pos_1(target_um=self._x2 + self._step_x * 2,
                                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
                                    )
         elif abs(self._step_y) > 0:
             def func():
                 self.stage_2.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 2
-                self.move_to_pos_2(target_um=self._y2 + self._step_y * 3,
+                self.move_to_pos_2(target_um=self._y2 + self._step_y * 2,
                                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
                                    )
         else:
@@ -1537,27 +1519,22 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
                                        live_update_plot=False,
                                        fcts_call_before_stream=[func])
 
-    def DoAnalysis(self):
-        print(self._n)
-        if self._n == 0:  # throw out zero, honestly I just realized this is redundant
+    def DoAnalysis(self, X):
+        if self._n % 2 == 0:
+            x = np.frombuffer(X, '<h')
+
+        else:
             self._n += 1
             return  # skip
 
-        if self._n % 2 == 0:  # throw out evens
+        if self._n == 1:
             self._n += 1
             return  # skip
 
         if self._h == len(self._FT):
+            self._n += 1
             self._h += 1
             return  # skip
-        elif self._h > len(self._FT):
-            print("something went wrong")
-            raise_error(self.ErrorWindow, "something went wrong")
-            self._h += 1
-            return  # skip
-
-        x = self.active_stream.card_stream.stream_info.WorkBuffer[:-64]
-        x = np.frombuffer(x, '<h')
 
         ppifg = self.active_stream.ppifg
         center = ppifg // 2

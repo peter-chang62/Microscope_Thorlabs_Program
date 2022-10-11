@@ -773,14 +773,14 @@ class StreamWithGui(dsa.Stream):
             self.le_ppifg.setText(str(npts_float))
             self.ppifg = npts_int
 
-    def apply_ppifg(self, *args, target_NPTS=None, prep_walk_correction=True):
-        if self.ppifg is None:
-            dsa.raise_error(self.ErrorWindow, "no ppifg yet")
-            return
-        if target_NPTS is None:  # target number of points not provided
+    def apply_ppifg(self, *args, target_NBYTES=None, prep_walk_correction=True):
+        if target_NBYTES is None:  # target number of points not provided
+            if self.ppifg is None:
+                dsa.raise_error(self.ErrorWindow, "no ppifg yet")
+                return
             buffer_size_bytes = 2 * self.ppifg * 2
         else:  # target number of points are provided
-            buffer_size_bytes = 2 * target_NPTS  # 2 bytes per data point
+            buffer_size_bytes = target_NBYTES
 
         # have the buffer be at least 13 MB
         if buffer_size_bytes < 13e6:
