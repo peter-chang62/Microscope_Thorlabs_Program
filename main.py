@@ -339,7 +339,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self._y2_img = None
         self._step_um_img = None
         self._scan_img = None
+        self._vel_mm_s = None
         self._IMG = None
+        self._h = None
 
         self._card_stream_progress_fcts = None
         self._card_stream_finished_fcts = None
@@ -960,11 +962,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.btn_move_to_pos_1.setText("stop motor")
         self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
         self.connect_update_motor_1()
-        
+
         if connect_to_progress_fcts is not None:
             assert isinstance(connect_to_progress_fcts, list)
             [self.update_motor_thread_1.signal.progress.connect(i) for i in connect_to_progress_fcts]
-        
+
         if connect_to_finish_fcts is not None:
             assert isinstance(connect_to_finish_fcts, list)
             [self.update_motor_thread_1.signal.finished.connect(i) for i in connect_to_finish_fcts]
@@ -1313,7 +1315,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         ry = dy / r
         step_x = step_um * rx  # step_x, step_y can be negative -> we will only call step_right in the loop below!
         step_y = step_um * ry
-        npts = np.ceil(r / step_um)
+        npts = np.floor(r / step_um)
 
         # round off: if the step is less than 10 nm then it's just stage error. This caused me a lot of issues
         # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
@@ -1401,6 +1403,15 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     # __________________________________________________________________________________________________________________
     # this function will be called from _check_if_at_start instead of _line_scan_notrigger_2
     def _line_scan_withtrigger(self, x2, y2, step_um):
+        if self.calling_from_image.is_set():
+            def func():
+                self._line_scan_withtrigger(x2, y2, step_um)
+
+            if self.motor_moving_1.is_set():
+                self.update_motor_thread_1.signal.finished.connect(func)
+            elif self.motor_moving_2.is_set():
+                self.update_motor_thread_2.signal.finished.connect(func)
+
         x1 = self.stage_1.pos_um
         y1 = self.stage_2.pos_um
 
@@ -1412,7 +1423,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         ry = dy / r
         step_x = step_um * rx  # step_x, step_y can be negative -> we will only call step_right in the loop below!
         step_y = step_um * ry
-        npts = np.ceil(r / step_um)
+        npts = np.floor(r / step_um)
 
         # round off: if the step is less than 10 nm then it's just stage error. This caused me a lot of issues
         # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
@@ -1432,6 +1443,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self._step_um = step_um
         self._npts = int(npts)
         self._n = 0
+        self._h = 0
 
         self._X = np.zeros(self._npts + 1)
         self._Y = np.zeros(self._npts + 1)
@@ -1446,7 +1458,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         nu = np.linspace(0, Nyq_Freq, center) + translation
         wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
         self._WL = wl
-        self._FT = np.zeros(((self._npts + 1) * 2, center))
+        self._FT = np.zeros((self._npts + 1, center))
 
         # 1) adjust the streaming buffer size for the line scan to acquire_npts (assuming user set it to N * ppifg)
         # 2) set external trigger to True
@@ -1476,23 +1488,25 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.btn_lscn_start.setText("stop scan")
 
         # 5)
-        T = self.active_stream.acquire_npts * 1e-9  # time of acquisition
-        x = 1e-3  # 1 um (distance to move during time of acquisition in mm)
-        vel_mm_s = x / T
+        # T = self.active_stream.acquire_npts * 1e-9  # time of acquisition
+        # x = 1e-3  # 1 um (distance to move during time of acquisition in mm)
+        # vel_mm_s = x / T
+        # self._vel_mm_s = vel_mm_s
 
-        T_bw_trigg_ms = step_um * 1e3 / (vel_mm_s * 1e3)
-        if T_bw_trigg_ms <= 100:
-            raise_error(self.ErrorWindow, "scan velocity is too fast!")
-            self.lscn_with_trigger_stop_finished()
-            return
+        self._vel_mm_s = step_um * 1e-3
+
+        # self._vel_mm_s = 5e-3  # 5 um per second
+        # T_bw_trigg_ms = step_um * 1e3 / (self._vel_mm_s * 1e3)
+        # if T_bw_trigg_ms <= min([self.stage_1.pulse_width_ms, self.stage_2.pulse_width_ms]):
+        #     raise_error(self.ErrorWindow, "scan velocity is too fast!")
+        #     self.lscn_with_trigger_stop_finished()
+        #     return
 
         if abs(step_x) > 0:
-            self.stage_1.set_max_vel(vel_mm_s)  # set scan velocity for stage 1
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
             self.step_left_1(step_um=step_x)  # back up step_x so first data point is taken at the start line
             self.update_motor_thread_1.signal.finished.connect(self._line_scan_withtrigger_2)
         elif abs(step_y) > 0:
-            self.stage_2.set_max_vel(vel_mm_s)  # set scan velocity for stage 2
             self.stage_2.step_um = step_y  # set trigger interval for stage 2
             self.step_left_2(step_um=step_y)  # back up step_y so first data point is taken at the start line
             self.update_motor_thread_2.signal.finished.connect(self._line_scan_withtrigger_2)
@@ -1503,12 +1517,16 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # 6)
         if abs(self._step_x) > 0:
             def func():
-                self.move_to_pos_1(target_um=self._x2 + self._step_x * 2,
-                                   connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion])
+                self.stage_1.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 1
+                self.move_to_pos_1(target_um=self._x2 + self._step_x * 3,
+                                   # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
+                                   )
         elif abs(self._step_y) > 0:
             def func():
-                self.move_to_pos_2(target_um=self._y2 + self._step_y * 2,
-                                   connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion])
+                self.stage_2.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 2
+                self.move_to_pos_2(target_um=self._y2 + self._step_y * 3,
+                                   # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
+                                   )
         else:
             raise_error(self.ErrorWindow, "both step_x and step_y are zero!")
             return
@@ -1520,46 +1538,72 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
                                        fcts_call_before_stream=[func])
 
     def DoAnalysis(self):
+        print(self._n)
+        if self._n == 0:
+            self._n += 1
+            return  # skip
+
+        if self._n % 2 == 0:
+            self._n += 1
+            return  # skip
+
+        if self._h == len(self._FT):
+            return  # skip
+        elif self._h > len(self._FT):
+            print("something went wrong")
+            raise_error(self.ErrorWindow, "something went wrong")
+            return  # skip
 
         x = self.active_stream.card_stream.stream_info.WorkBuffer[:-64]
         x = np.frombuffer(x, '<h')
-        print(len(x), self._n)
 
-        # ppifg = self.active_stream.ppifg
-        # center = ppifg // 2
-        # x = x[np.argmax(x[:ppifg]):][center:]
-        # N = len(x) // self.active_stream.ppifg
-        # x = x[:N * self.active_stream.ppifg]
-        # x.resize((N, self.active_stream.ppifg))
-        # x = np.mean(x, 0)
-        # ft = fft(x).__abs__()
-        #
-        # if self.Nyquist_Window % 2 == 0:
-        #     ft = ft[:center]  # negative frequency side
-        # else:
-        #     ft = ft[center:]  # positive frequency side
-        #
-        # self._FT[self._n] = ft
-        # self.curve_lscn.setData(self._WL, ft)
+        ppifg = self.active_stream.ppifg
+        center = ppifg // 2
+        x = x[np.argmax(x[:ppifg]):][center:]
+        N = len(x) // self.active_stream.ppifg
+        x = x[:N * self.active_stream.ppifg]
+        x.resize((N, self.active_stream.ppifg))
+        x = np.mean(x, 0)
+        ft = fft(x).__abs__()
 
-        if self._n == len(self._FT) - 2 or self.stop_lscn.is_set():
-            print("attempted to termiante stream")
+        if self.Nyquist_Window % 2 == 0:
+            ft = ft[:center]  # negative frequency side
+        else:
+            ft = ft[center:]  # positive frequency side
+
+        self._FT[self._h] = ft
+        n_skip = ppifg // 400
+        self.curve_lscn.setData(self._WL[::n_skip], ft[::n_skip])
+        print(self._h, "out of", len(self._FT))
+
+        if self._h == len(self._FT) - 1 or self.stop_lscn.is_set():
+            print("attempted to terminate stream")
             self.active_stream.terminate()
 
+        # self._n incremented always, self._h incremented only if checks pass
         self._n += 1
+        self._h += 1
 
     def lscn_with_trigger_stop_finished(self):
+        dsa.setExtTrigger(self.active_stream.inifile_stream, 0)
+        dsa.setSegmentSize(self.active_stream.inifile_stream, -1)
         self.stop_lscn.clear()
         self.lscn_running.clear()
         self.btn_lscn_start.setText("start scan")
-        self.signal.finished.emit(None)
 
-        dsa.setExtTrigger(self.active_stream.inifile_stream, 0)
-        dsa.setSegmentSize(self.active_stream.inifile_stream, -1)
+        if self.motor_moving_1.is_set():
+            self.update_motor_thread_1.signal.finished.connect(self.lscn_with_trigger_end_of_motion)
+            self.update_motor_thread_1.stop()
+        elif self.motor_moving_2.is_set():
+            self.update_motor_thread_2.signal.finished.connect(self.lscn_with_trigger_end_of_motion)
+            self.update_motor_thread_2.stop()
+        else:
+            self.lscn_with_trigger_end_of_motion()
 
     def lscn_with_trigger_end_of_motion(self):
         self.stage_1.set_max_vel(1)
         self.stage_2.set_max_vel(1)
+        self.signal.finished.emit(None)
 
     # __________________________________________________________________________________________________________________
     # Image with or without trigger
