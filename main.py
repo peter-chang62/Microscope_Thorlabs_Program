@@ -1521,14 +1521,15 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
                                        fcts_call_before_stream=[func])
 
     def DoAnalysis(self, X):
-        if self._n % 2 == 0:
-            x = np.frombuffer(X, '<h')
-        else:
+        # skip the first data point (due to the stage triggering where I don't want it to)
+        if self._n == 1:
             self._n += 1
             return  # skip
 
-        # skip the first data point (due to the stage triggering where I don't want it to)
-        if self._n == 1:
+        # skip all odd loop counts
+        if self._n % 2 == 0:
+            x = np.frombuffer(X, '<h')
+        else:
             self._n += 1
             return  # skip
 
