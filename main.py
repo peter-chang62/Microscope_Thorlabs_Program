@@ -1482,7 +1482,8 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.lscn_running.set()
         self.btn_lscn_start.setText("stop scan")
 
-        self._vel_mm_s = step_um * 1e-3
+        T = self.active_stream.acquire_npts * 1e-9
+        self._vel_mm_s = min([step_um * 1e-3, 1e-3 / T])
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
@@ -1500,13 +1501,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         if abs(self._step_x) > 0:
             def func():
                 self.stage_1.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 1
-                self.move_to_pos_1(target_um=self._x2 + self._step_x * 2,
+                self.move_to_pos_1(target_um=self._x2 + self._step_x * 3,
                                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
                                    )
         elif abs(self._step_y) > 0:
             def func():
                 self.stage_2.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 2
-                self.move_to_pos_2(target_um=self._y2 + self._step_y * 2,
+                self.move_to_pos_2(target_um=self._y2 + self._step_y * 3,
                                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
                                    )
         else:
