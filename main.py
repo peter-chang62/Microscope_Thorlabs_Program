@@ -23,6 +23,8 @@ COM2 = "COM6"
 active_correct_line_scan = True
 databackup_path = r'D:\Microscope\databackup/'
 
+extra_steps_linescan = 10
+
 
 def fft(x, axis=None):
     """
@@ -1501,13 +1503,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         if abs(self._step_x) > 0:
             def func():
                 self.stage_1.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 1
-                self.move_to_pos_1(target_um=self._x2 + self._step_x * 3,
+                self.move_to_pos_1(target_um=self._x2 + self._step_x * extra_steps_linescan,
                                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
                                    )
         elif abs(self._step_y) > 0:
             def func():
                 self.stage_2.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 2
-                self.move_to_pos_2(target_um=self._y2 + self._step_y * 3,
+                self.move_to_pos_2(target_um=self._y2 + self._step_y * extra_steps_linescan,
                                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
                                    )
         else:
@@ -1533,7 +1535,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             self._n += 1
             return  # skip
 
-        if self._h == len(self._FT):
+        if self._h >= len(self._FT):
             self._n += 1
             self._h += 1
             return  # skip
