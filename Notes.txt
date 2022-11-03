@@ -13,3 +13,7 @@ The imaging really can be sped up (around a factor of 2 or a little more) if you
 2) connect_tracking_stream_update in self.stream1 and self.stream2 should be inherited and edited to remove the call to updatedisplay. This is already removed when you are saving data to storage_buffer, and now you just want to remove it altogether when doing linescans.
 
 3) also in connect_tracking_stream_update you will connect a new function that does the same analysis on the storage buffer as the analysis done in acquire_and_get_spectrum(). It might be worth using the timer package to see how long that analysis is currently taking for 1000 interferograms first. But hopefully it's okay ...
+
+4) Instead of the drop down menu in the line scan panel, be able to set the apodization window dynamically so that you can test out different fft lengths. This can increase the SNR, since you don't save it in the time domain, you can't go back and change that later in post processing after the experiment. 
+
+5) Add a save button.

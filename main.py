@@ -1485,7 +1485,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.btn_lscn_start.setText("stop scan")
 
         T = self.active_stream.acquire_npts * 1e-9
-        self._vel_mm_s = min([step_um * 1e-3, 1e-3 / T])
+        self._vel_mm_s = max([step_um * 1e-3, 1e-3 / T])
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
@@ -1523,6 +1523,10 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
                                        fcts_call_before_stream=[func])
 
     def DoAnalysis(self, X):
+        ppifg = self.active_stream.ppifg
+        center = ppifg // 2
+        n_skip = ppifg // 400
+
         # skip the first data point (due to the stage triggering where I don't want it to)
         if self._n == 1:
             self._n += 1
@@ -1540,8 +1544,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             self._h += 1
             return  # skip
 
-        ppifg = self.active_stream.ppifg
-        center = ppifg // 2
         x = x[np.argmax(x[:ppifg]):][center:]
         N = len(x) // self.active_stream.ppifg
         x = x[:N * self.active_stream.ppifg]
@@ -1555,7 +1557,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             ft = ft[center:]  # positive frequency side
 
         self._FT[self._h] = ft
-        n_skip = ppifg // 400
         self.curve_lscn.setData(self._WL[::n_skip], ft[::n_skip])
         print(self._h, "out of", len(self._FT))
 
