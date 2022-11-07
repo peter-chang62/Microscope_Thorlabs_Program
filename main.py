@@ -23,7 +23,9 @@ COM2 = "COM6"
 active_correct_line_scan = True
 databackup_path = r'D:\Microscope\databackup/'
 
-extra_steps_linescan = 10
+extra_steps_linescan = 100
+trigger_stage_1_only = True
+apod = 0
 
 
 def fft(x, axis=None):
@@ -271,6 +273,12 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
                                        self.le_lscn_ymin,
                                        self.le_lscn_ymax,
                                        self.gv_lscn)
+        self.plot_image = pw.PlotWindow(self.le_img_xmin,
+                                        self.le_img_xmax,
+                                        self.le_img_ymin,
+                                        self.le_img_ymax,
+                                        self.gv_img)
+
         self.curve_ptscn = pw.create_curve()
         self.plot_ptscn.plotwidget.addItem(self.curve_ptscn)
         self.curve_lscn = pw.create_curve()
@@ -1110,23 +1118,28 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             #     x[n] = np.roll(i, ind_diff[n])
             # __________________________________________________________________________________________________________
 
-            x = np.mean(x, 0)
+            center = self.active_stream.ppifg // 2
+            if apod:
+                x = x[:, center - apod // 2:center + apod // 2]
 
+            x = np.mean(x, 0)
             ft = fft(x).__abs__()
 
             # __________________________________________________________________________________________________________
             # calculate the wavelength axis
             # __________________________________________________________________________________________________________
-            center = self.active_stream.ppifg // 2
             Nyq_Freq = center * self.frep
             translation = (self.Nyquist_Window - 1) * Nyq_Freq
-            nu = np.linspace(0, Nyq_Freq, center) + translation
+            if apod:
+                nu = np.linspace(0, Nyq_Freq, apod // 2) + translation
+            else:
+                nu = np.linspace(0, Nyq_Freq, center) + translation
             wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
 
             if self.Nyquist_Window % 2 == 0:
-                ft = ft[:center]  # negative frequency side
+                ft = ft[:len(ft) // 2]  # negative frequency side
             else:
-                ft = ft[center:]  # positive frequency side
+                ft = ft[len(ft) // 2:]  # positive frequency side
 
             # __________________________________________________________________________________________________________
             # update the plot
@@ -1455,10 +1468,14 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         center = ppifg // 2
         Nyq_Freq = center * self.frep
         translation = (self.Nyquist_Window - 1) * Nyq_Freq
-        nu = np.linspace(0, Nyq_Freq, center) + translation
+        if apod:
+            nu = np.linspace(0, Nyq_Freq, apod // 2) + translation
+            self._FT = np.zeros((self._npts + 1, apod // 2))
+        else:
+            nu = np.linspace(0, Nyq_Freq, center) + translation
+            self._FT = np.zeros((self._npts + 1, center))
         wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
         self._WL = wl
-        self._FT = np.zeros((self._npts + 1, center))
 
         # 1)
         # this sets the buffer size in bytes
@@ -1486,6 +1503,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         T = self.active_stream.acquire_npts * 1e-9
         self._vel_mm_s = max([step_um * 1e-3, 1e-3 / T])
+        # self._vel_mm_s = 0.5
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
@@ -1525,7 +1543,10 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     def DoAnalysis(self, X):
         ppifg = self.active_stream.ppifg
         center = ppifg // 2
-        n_skip = ppifg // 400
+        if apod:
+            n_skip = apod // 400
+        else:
+            n_skip = ppifg // 400
 
         # skip the first data point (due to the stage triggering where I don't want it to)
         if self._n == 1:
@@ -1548,13 +1569,17 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         N = len(x) // self.active_stream.ppifg
         x = x[:N * self.active_stream.ppifg]
         x.resize((N, self.active_stream.ppifg))
+
+        if apod:
+            x = x[:, center - apod // 2:center + apod // 2]
+
         x = np.mean(x, 0)
         ft = fft(x).__abs__()
 
         if self.Nyquist_Window % 2 == 0:
-            ft = ft[:center]  # negative frequency side
+            ft = ft[:len(ft) // 2]  # negative frequency side
         else:
-            ft = ft[center:]  # positive frequency side
+            ft = ft[len(ft) // 2:]  # positive frequency side
 
         self._FT[self._h] = ft
         self.curve_lscn.setData(self._WL[::n_skip], ft[::n_skip])
@@ -1641,12 +1666,18 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         dx = x2 - x1
         dy = y2 - y1
-        if dx >= dy:  # doing line scans along x, so dy / step_um line scans
+
+        if not trigger_stage_1_only:
+            if dx >= dy:  # doing line scans along x, so dy / step_um line scans
+                self._N_linescans = int(np.floor(dy / step_um))
+                self._scan_img = 0
+            else:  # doing line scans along y, so dx / step_um line scans
+                self._N_linescans = int(np.floor(dx / step_um))
+                self._scan_img = 1
+
+        else:
             self._N_linescans = int(np.floor(dy / step_um))
             self._scan_img = 0
-        else:  # doing line scans along y, so dx / step_um line scans
-            self._N_linescans = int(np.floor(dx / step_um))
-            self._scan_img = 1
 
         if self._scan_img == 0:  # x scan
             self.line_scan_notrigger(x1, y1, x2, y1, step_um)
@@ -1694,11 +1725,17 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             self._YPOS[:, self._n_img] = self._Y
             print(f'________________ acquired image point {self._n_img} of {self._N_linescans} ________________')
 
+            # update image plot
+            self.update_image(self._IMG[:, :self._n_img + 1])
+
         else:  # Y scan
             self._IMG[self._n_img, :, :] = self._FT
             self._XPOS[self._n_img, :] = self._X
             self._YPOS[self._n_img, :] = self._Y
             print(f'________________ acquired image point {self._n_img} of {self._N_linescans} ________________')
+
+            # update image plot
+            self.update_image(self._IMG[:self._n_img + 1])
 
         # start the next scan (if there is one)
         if self._n_img < self._N_linescans:
@@ -1728,6 +1765,10 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.calling_from_image.clear()
         self.btn_img_start.setText("start scan")
         self.signal.finished.disconnect(self._img_next_step)
+
+    def update_image(self, arr):
+        arr = simps(arr, axis=-1)
+        self.plot_image.plotwidget.plot_image(arr)
 
 
 # %%____________________________________________________________________________________________________________________
