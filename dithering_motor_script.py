@@ -164,9 +164,9 @@ class MotorInterface:
         self.motor.set_max_vel(m_s)
 
 
-m = MotorInterface(apt.KDC101(COM2))
-m.set_max_vel(2)
-pos = [8200, 11000]
+m = MotorInterface(apt.KDC101(COM1))
+m.set_max_vel(.5)
+pos = [6270, 6470]
 b = 0
 while True:
     m.pos_um = pos[b]

@@ -23,7 +23,7 @@ COM2 = "COM6"
 active_correct_line_scan = True
 databackup_path = r'D:\Microscope\databackup/'
 
-extra_steps_linescan = 100
+extra_steps_linescan = 10
 trigger_stage_1_only = True
 apod = 0
 
@@ -1502,8 +1502,8 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.btn_lscn_start.setText("stop scan")
 
         T = self.active_stream.acquire_npts * 1e-9
-        self._vel_mm_s = max([step_um * 1e-3, 1e-3 / T])
-        # self._vel_mm_s = 0.5
+        # self._vel_mm_s = min([step_um * 1e-3, 1e-3 / T])
+        self._vel_mm_s = step_um * 1e-3 * 2  # two pixels per second
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
