@@ -814,9 +814,16 @@ class StreamWithGui(dsa.Stream):
 
         N_ifgs = self.data_storage_buffer.size // (self.ppifg * 2)
         filename += "_{Nifgs}x{ppifg}".format(ppifg=int(self.ppifg), Nifgs=int(N_ifgs))
-        filename += ".bin"
 
-        self.data_storage_buffer.tofile(filename)
+        # saving as binary file
+        # filename += ".bin"
+        # self.data_storage_buffer.tofile(filename)
+
+        # saving as .npy file
+        filename += ".npy"
+        data = np.frombuffer(self.data_storage_buffer, '<h')
+        data.resize((N_ifgs, self.ppifg))
+        np.save(filename, data)
 
     def terminate(self):
         super().terminate()
