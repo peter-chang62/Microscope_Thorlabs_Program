@@ -1931,5 +1931,3 @@ if __name__ == "__main__":
     app = qt.QApplication([])
     hey = GuiTwoCards()
     app.exec()
-
-# %%
