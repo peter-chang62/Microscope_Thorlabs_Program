@@ -21,7 +21,7 @@ edge_limit_buffer_mm = 0.0  # 1 um
 COM1 = "COM4"
 COM2 = "COM6"
 active_correct_line_scan = True
-databackup_path = r'D:\Microscope\databackup/'
+databackup_path = r"D:\Microscope\databackup/"
 
 extra_steps_linescan = 10
 trigger_stage_1_only = True
@@ -37,7 +37,9 @@ def fft(x, axis=None):
     if axis is None:
         return np.fft.fftshift(mkl_fft.fft(np.fft.ifftshift(x)))
     else:
-        return np.fft.fftshift(mkl_fft.fft(np.fft.ifftshift(x, axes=axis), axis=axis), axes=axis)
+        return np.fft.fftshift(
+            mkl_fft.fft(np.fft.ifftshift(x, axes=axis), axis=axis), axes=axis
+        )
 
 
 def ifft(x, axis=None):
@@ -49,7 +51,9 @@ def ifft(x, axis=None):
     if axis is None:
         return np.fft.fftshift(mkl_fft.ifft(np.fft.ifftshift(x)))
     else:
-        return np.fft.fftshift(mkl_fft.ifft(np.fft.ifftshift(x, axes=axis), axis=axis), axes=axis)
+        return np.fft.fftshift(
+            mkl_fft.ifft(np.fft.ifftshift(x, axes=axis), axis=axis), axes=axis
+        )
 
 
 def dist_um_to_T_fs(value_um):
@@ -93,7 +97,7 @@ class MotorInterface:
     keep classes in utilities.py more bare bone, and focus on hardware
     communication there. Here I will add more things I would like the Motor
     class to have. This class expects an instance of util.Motor class from
-    utilities.py """
+    utilities.py"""
 
     def __init__(self, motor):
         motor: apt.KDC101
@@ -194,12 +198,20 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.shared_info = rdsa.SharedInfo()
 
-        self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_CARD1.ini',
-                                     inifile_acquire='include/Acquire_CARD1.ini',
-                                     shared_info=self.shared_info)
-        self.stream2 = StreamWithGui(self, index=2, inifile_stream='include/Stream2Analysis_CARD2.ini',
-                                     inifile_acquire='include/Acquire_CARD2.ini',
-                                     shared_info=self.shared_info)
+        self.stream1 = StreamWithGui(
+            self,
+            index=1,
+            inifile_stream="include/Stream2Analysis_CARD1.ini",
+            inifile_acquire="include/Acquire_CARD1.ini",
+            shared_info=self.shared_info,
+        )
+        self.stream2 = StreamWithGui(
+            self,
+            index=2,
+            inifile_stream="include/Stream2Analysis_CARD2.ini",
+            inifile_acquire="include/Acquire_CARD2.ini",
+            shared_info=self.shared_info,
+        )
 
         self.show()
 
@@ -263,21 +275,27 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.le_img_end_um_2.setValidator(qtg.QDoubleValidator())
         self.le_img_end_fs_2.setValidator(qtg.QDoubleValidator())
 
-        self.plot_ptscn = pw.PlotWindow(self.le_ptscn_xmin,
-                                        self.le_ptscn_xmax,
-                                        self.le_ptscn_ymin,
-                                        self.le_ptscn_ymax,
-                                        self.gv_ptscn)
-        self.plot_lscn = pw.PlotWindow(self.le_lscn_xmin,
-                                       self.le_lscn_xmax,
-                                       self.le_lscn_ymin,
-                                       self.le_lscn_ymax,
-                                       self.gv_lscn)
-        self.plot_image = pw.PlotWindow(self.le_img_xmin,
-                                        self.le_img_xmax,
-                                        self.le_img_ymin,
-                                        self.le_img_ymax,
-                                        self.gv_img)
+        self.plot_ptscn = pw.PlotWindow(
+            self.le_ptscn_xmin,
+            self.le_ptscn_xmax,
+            self.le_ptscn_ymin,
+            self.le_ptscn_ymax,
+            self.gv_ptscn,
+        )
+        self.plot_lscn = pw.PlotWindow(
+            self.le_lscn_xmin,
+            self.le_lscn_xmax,
+            self.le_lscn_ymin,
+            self.le_lscn_ymax,
+            self.gv_lscn,
+        )
+        self.plot_image = pw.PlotWindow(
+            self.le_img_xmin,
+            self.le_img_xmax,
+            self.le_img_ymin,
+            self.le_img_ymax,
+            self.gv_img,
+        )
 
         self.curve_ptscn = pw.create_curve()
         self.plot_ptscn.plotwidget.addItem(self.curve_ptscn)
@@ -517,10 +535,18 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.le_img_step_size_um.editingFinished.connect(self.update_stepsize_img_um)
         self.le_img_step_size_fs.editingFinished.connect(self.update_stepsize_img_fs)
 
-        self.le_lscn_start_um_1.editingFinished.connect(self.update_target_lscn_strt_um_1)
-        self.le_lscn_start_um_2.editingFinished.connect(self.update_target_lscn_strt_um_2)
-        self.le_lscn_start_fs_1.editingFinished.connect(self.update_target_lscn_strt_fs_1)
-        self.le_lscn_start_fs_2.editingFinished.connect(self.update_target_lscn_strt_fs_2)
+        self.le_lscn_start_um_1.editingFinished.connect(
+            self.update_target_lscn_strt_um_1
+        )
+        self.le_lscn_start_um_2.editingFinished.connect(
+            self.update_target_lscn_strt_um_2
+        )
+        self.le_lscn_start_fs_1.editingFinished.connect(
+            self.update_target_lscn_strt_fs_1
+        )
+        self.le_lscn_start_fs_2.editingFinished.connect(
+            self.update_target_lscn_strt_fs_2
+        )
         self.le_lscn_end_um_1.editingFinished.connect(self.update_target_lscn_end_um_1)
         self.le_lscn_end_um_2.editingFinished.connect(self.update_target_lscn_end_um_2)
         self.le_lscn_end_fs_1.editingFinished.connect(self.update_target_lscn_end_fs_1)
@@ -600,22 +626,22 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     def update_lcd_pos_1(self, pos_um):
         self.pos_um_1 = pos_um
         pos_fs = dist_um_to_T_fs(pos_um - self.stage_1.T0_um)
-        self.lcd_ptscn_pos_um_1.display('%.3f' % pos_um)
-        self.lcd_ptscn_pos_fs_1.display('%.3f' % pos_fs)
-        self.lcd_lscn_pos_um_1.display('%.3f' % pos_um)
-        self.lcd_lscn_pos_fs_1.display('%.3f' % pos_fs)
-        self.lcd_img_pos_um_1.display('%.3f' % pos_um)
-        self.lcd_img_pos_fs_1.display('%.3f' % pos_fs)
+        self.lcd_ptscn_pos_um_1.display("%.3f" % pos_um)
+        self.lcd_ptscn_pos_fs_1.display("%.3f" % pos_fs)
+        self.lcd_lscn_pos_um_1.display("%.3f" % pos_um)
+        self.lcd_lscn_pos_fs_1.display("%.3f" % pos_fs)
+        self.lcd_img_pos_um_1.display("%.3f" % pos_um)
+        self.lcd_img_pos_fs_1.display("%.3f" % pos_fs)
 
     def update_lcd_pos_2(self, pos_um):
         self.pos_um_2 = pos_um
         pos_fs = dist_um_to_T_fs(pos_um - self.stage_2.T0_um)
-        self.lcd_ptscn_pos_um_2.display('%.3f' % pos_um)
-        self.lcd_ptscn_pos_fs_2.display('%.3f' % pos_fs)
-        self.lcd_lscn_pos_um_2.display('%.3f' % pos_um)
-        self.lcd_lscn_pos_fs_2.display('%.3f' % pos_fs)
-        self.lcd_img_pos_um_2.display('%.3f' % pos_um)
-        self.lcd_img_pos_fs_2.display('%.3f' % pos_fs)
+        self.lcd_ptscn_pos_um_2.display("%.3f" % pos_um)
+        self.lcd_ptscn_pos_fs_2.display("%.3f" % pos_fs)
+        self.lcd_lscn_pos_um_2.display("%.3f" % pos_um)
+        self.lcd_lscn_pos_fs_2.display("%.3f" % pos_fs)
+        self.lcd_img_pos_um_2.display("%.3f" % pos_um)
+        self.lcd_img_pos_fs_2.display("%.3f" % pos_fs)
 
     def update_target_um_1(self):
         target_um = float(self.le_pos_um_1.text())
@@ -625,11 +651,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_ptscn_um_1 = target_um
 
-        self.le_pos_fs_1.setText('%.3f' % self.target_ptscn_fs_1)
+        self.le_pos_fs_1.setText("%.3f" % self.target_ptscn_fs_1)
 
     def update_target_fs_1(self):
         target_fs = float(self.le_pos_fs_1.text())
@@ -640,11 +666,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_ptscn_um_1 = target_um
 
-        self.le_pos_um_1.setText('%.3f' % self.target_ptscn_um_1)
+        self.le_pos_um_1.setText("%.3f" % self.target_ptscn_um_1)
 
     def update_target_um_2(self):
         target_um = float(self.le_pos_um_2.text())
@@ -654,11 +680,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_ptscn_um_2 = target_um
 
-        self.le_pos_fs_2.setText('%.3f' % self.target_ptscn_fs_2)
+        self.le_pos_fs_2.setText("%.3f" % self.target_ptscn_fs_2)
 
     def update_target_fs_2(self):
         target_fs = float(self.le_pos_fs_2.text())
@@ -669,11 +695,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_ptscn_um_2 = target_um
 
-        self.le_pos_um_2.setText('%.3f' % self.target_ptscn_um_2)
+        self.le_pos_um_2.setText("%.3f" % self.target_ptscn_um_2)
 
     def update_target_lscn_strt_um_1(self):
         target_um = float(self.le_lscn_start_um_1.text())
@@ -683,11 +709,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_strt_um_1 = target_um
 
-        self.le_lscn_start_fs_1.setText('%.3f' % self.target_lscn_strt_fs_1)
+        self.le_lscn_start_fs_1.setText("%.3f" % self.target_lscn_strt_fs_1)
 
     def update_target_lscn_strt_fs_1(self):
         target_fs = float(self.le_lscn_start_fs_1.text())
@@ -698,11 +724,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_strt_um_1 = target_um
 
-        self.le_lscn_start_um_1.setText('%.3f' % self.target_lscn_strt_um_1)
+        self.le_lscn_start_um_1.setText("%.3f" % self.target_lscn_strt_um_1)
 
     def update_target_lscn_strt_um_2(self):
         target_um = float(self.le_lscn_start_um_2.text())
@@ -712,11 +738,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_strt_um_2 = target_um
 
-        self.le_lscn_start_fs_2.setText('%.3f' % self.target_lscn_strt_fs_2)
+        self.le_lscn_start_fs_2.setText("%.3f" % self.target_lscn_strt_fs_2)
 
     def update_target_lscn_strt_fs_2(self):
         target_fs = float(self.le_lscn_start_fs_2.text())
@@ -727,11 +753,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_strt_um_2 = target_um
 
-        self.le_lscn_start_um_2.setText('%.3f' % self.target_lscn_strt_um_2)
+        self.le_lscn_start_um_2.setText("%.3f" % self.target_lscn_strt_um_2)
 
     def update_target_lscn_end_um_1(self):
         target_um = float(self.le_lscn_end_um_1.text())
@@ -741,11 +767,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_end_um_1 = target_um
 
-        self.le_lscn_end_fs_1.setText('%.3f' % self.target_lscn_end_fs_1)
+        self.le_lscn_end_fs_1.setText("%.3f" % self.target_lscn_end_fs_1)
 
     def update_target_lscn_end_fs_1(self):
         target_fs = float(self.le_lscn_end_fs_1.text())
@@ -756,11 +782,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_end_um_1 = target_um
 
-        self.le_lscn_end_um_1.setText('%.3f' % self.target_lscn_end_um_1)
+        self.le_lscn_end_um_1.setText("%.3f" % self.target_lscn_end_um_1)
 
     def update_target_lscn_end_um_2(self):
         target_um = float(self.le_lscn_end_um_2.text())
@@ -770,11 +796,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_end_um_2 = target_um
 
-        self.le_lscn_end_fs_2.setText('%.3f' % self.target_lscn_end_fs_2)
+        self.le_lscn_end_fs_2.setText("%.3f" % self.target_lscn_end_fs_2)
 
     def update_target_lscn_end_fs_2(self):
         target_fs = float(self.le_lscn_end_fs_2.text())
@@ -785,11 +811,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_lscn_end_um_2 = target_um
 
-        self.le_lscn_end_um_2.setText('%.3f' % self.target_lscn_end_um_2)
+        self.le_lscn_end_um_2.setText("%.3f" % self.target_lscn_end_um_2)
 
     def update_target_img_strt_um_1(self):
         target_um = float(self.le_img_start_um_1.text())
@@ -799,11 +825,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_strt_um_1 = target_um
 
-        self.le_img_start_fs_1.setText('%.3f' % self.target_img_strt_fs_1)
+        self.le_img_start_fs_1.setText("%.3f" % self.target_img_strt_fs_1)
 
     def update_target_img_strt_fs_1(self):
         target_fs = float(self.le_img_start_fs_1.text())
@@ -814,11 +840,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_strt_um_1 = target_um
 
-        self.le_img_start_um_1.setText('%.3f' % self.target_img_strt_um_1)
+        self.le_img_start_um_1.setText("%.3f" % self.target_img_strt_um_1)
 
     def update_target_img_strt_um_2(self):
         target_um = float(self.le_img_start_um_2.text())
@@ -828,11 +854,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_strt_um_2 = target_um
 
-        self.le_img_start_fs_2.setText('%.3f' % self.target_img_strt_fs_2)
+        self.le_img_start_fs_2.setText("%.3f" % self.target_img_strt_fs_2)
 
     def update_target_img_strt_fs_2(self):
         target_fs = float(self.le_img_start_fs_2.text())
@@ -843,11 +869,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_strt_um_2 = target_um
 
-        self.le_img_start_um_2.setText('%.3f' % self.target_img_strt_um_2)
+        self.le_img_start_um_2.setText("%.3f" % self.target_img_strt_um_2)
 
     def update_target_img_end_um_1(self):
         target_um = float(self.le_img_end_um_1.text())
@@ -857,11 +883,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_end_um_1 = target_um
 
-        self.le_img_end_fs_1.setText('%.3f' % self.target_img_end_fs_1)
+        self.le_img_end_fs_1.setText("%.3f" % self.target_img_end_fs_1)
 
     def update_target_img_end_fs_1(self):
         target_fs = float(self.le_img_end_fs_1.text())
@@ -872,11 +898,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_end_um_1 = target_um
 
-        self.le_img_end_um_1.setText('%.3f' % self.target_img_end_um_1)
+        self.le_img_end_um_1.setText("%.3f" % self.target_img_end_um_1)
 
     def update_target_img_end_um_2(self):
         target_um = float(self.le_img_end_um_2.text())
@@ -886,11 +912,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_end_um_2 = target_um
 
-        self.le_img_end_fs_2.setText('%.3f' % self.target_img_end_fs_2)
+        self.le_img_end_fs_2.setText("%.3f" % self.target_img_end_fs_2)
 
     def update_target_img_end_fs_2(self):
         target_fs = float(self.le_img_end_fs_2.text())
@@ -901,55 +927,59 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "target position must be >= 0")
             return
         elif target_um > upper_limit:
-            raise_error(self.ErrorWindow, f'target position must be <= {upper_limit}')
+            raise_error(self.ErrorWindow, f"target position must be <= {upper_limit}")
             return
         self.target_img_end_um_2 = target_um
 
-        self.le_img_end_um_2.setText('%.3f' % self.target_img_end_um_2)
+        self.le_img_end_um_2.setText("%.3f" % self.target_img_end_um_2)
 
     def update_stepsize_ptscn_um_1(self):
         step_size_um = float(self.le_step_size_um_1.text())
         self.step_size_ptscn_um_1 = step_size_um
-        self.le_step_size_fs_1.setText('%.3f' % self.step_size_ptscn_fs_1)
+        self.le_step_size_fs_1.setText("%.3f" % self.step_size_ptscn_fs_1)
 
     def update_stepsize_ptscn_fs_1(self):
         step_size_fs = float(self.le_step_size_fs_1.text())
         self.step_size_ptscn_fs_1 = step_size_fs
-        self.le_step_size_um_1.setText('%.3f' % self.step_size_ptscn_um_1)
+        self.le_step_size_um_1.setText("%.3f" % self.step_size_ptscn_um_1)
 
     def update_stepsize_ptscn_um_2(self):
         step_size_um = float(self.le_step_size_um_2.text())
         self.step_size_ptscn_um_2 = step_size_um
-        self.le_step_size_fs_2.setText('%.3f' % self.step_size_ptscn_fs_2)
+        self.le_step_size_fs_2.setText("%.3f" % self.step_size_ptscn_fs_2)
 
     def update_stepsize_ptscn_fs_2(self):
         step_size_fs = float(self.le_step_size_fs_2.text())
         self.step_size_ptscn_fs_2 = step_size_fs
-        self.le_step_size_um_2.setText('%.3f' % self.step_size_ptscn_um_2)
+        self.le_step_size_um_2.setText("%.3f" % self.step_size_ptscn_um_2)
 
     def update_stepsize_lscn_um(self):
         step_size_um = float(self.le_lscn_step_size_um.text())
         self.step_size_lscn_um = step_size_um
-        self.le_lscn_step_size_fs.setText('%.3f' % self.step_size_lscn_fs)
+        self.le_lscn_step_size_fs.setText("%.3f" % self.step_size_lscn_fs)
 
     def update_stepsize_lscn_fs(self):
         step_size_fs = float(self.le_lscn_step_size_fs.text())
         self.step_size_lscn_fs = step_size_fs
-        self.le_lscn_step_size_um.setText('%.3f' % self.step_size_lscn_um)
+        self.le_lscn_step_size_um.setText("%.3f" % self.step_size_lscn_um)
 
     def update_stepsize_img_um(self):
         step_size_um = float(self.le_img_step_size_um.text())
         self.step_size_img_um = step_size_um
-        self.le_img_step_size_fs.setText('%.3f' % self.step_size_img_fs)
+        self.le_img_step_size_fs.setText("%.3f" % self.step_size_img_fs)
 
     def update_stepsize_img_fs(self):
         step_size_fs = float(self.le_img_step_size_fs.text())
         self.step_size_img_fs = step_size_fs
-        self.le_img_step_size_um.setText('%.3f' % self.step_size_img_um)
+        self.le_img_step_size_um.setText("%.3f" % self.step_size_img_um)
 
-    def move_to_pos_1(self, *args, target_um=None,
-                      connect_to_progress_fcts=None,
-                      connect_to_finish_fcts=None):
+    def move_to_pos_1(
+        self,
+        *args,
+        target_um=None,
+        connect_to_progress_fcts=None,
+        connect_to_finish_fcts=None,
+    ):
         if self.motor_moving_1.is_set():
             self.update_motor_thread_1: UpdateMotorThread
             self.update_motor_thread_1.stop()
@@ -968,24 +998,36 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.btn_home_stage_1.setText("stop motor")
         self.btn_move_to_pos_1.setText("stop motor")
-        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.update_motor_thread_1 = UpdateMotorThread(
+            self.stage_1, self.motor_moving_1
+        )
         self.connect_update_motor_1()
 
         if connect_to_progress_fcts is not None:
             assert isinstance(connect_to_progress_fcts, list)
-            [self.update_motor_thread_1.signal.progress.connect(i) for i in connect_to_progress_fcts]
+            [
+                self.update_motor_thread_1.signal.progress.connect(i)
+                for i in connect_to_progress_fcts
+            ]
 
         if connect_to_finish_fcts is not None:
             assert isinstance(connect_to_finish_fcts, list)
-            [self.update_motor_thread_1.signal.finished.connect(i) for i in connect_to_finish_fcts]
+            [
+                self.update_motor_thread_1.signal.finished.connect(i)
+                for i in connect_to_finish_fcts
+            ]
 
         thread = threading.Thread(target=self.update_motor_thread_1.run)
         self.motor_moving_1.set()
         thread.start()
 
-    def move_to_pos_2(self, *args, target_um=None,
-                      connect_to_progress_fcts=None,
-                      connect_to_finish_fcts=None):
+    def move_to_pos_2(
+        self,
+        *args,
+        target_um=None,
+        connect_to_progress_fcts=None,
+        connect_to_finish_fcts=None,
+    ):
         if self.motor_moving_2.is_set():
             self.update_motor_thread_2: UpdateMotorThread
             self.update_motor_thread_2.stop()
@@ -1004,16 +1046,24 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.btn_home_stage_2.setText("stop motor")
         self.btn_move_to_pos_2.setText("stop motor")
-        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.update_motor_thread_2 = UpdateMotorThread(
+            self.stage_2, self.motor_moving_2
+        )
         self.connect_update_motor_2()
 
         if connect_to_progress_fcts is not None:
             assert isinstance(connect_to_progress_fcts, list)
-            [self.update_motor_thread_2.signal.progress.connect(i) for i in connect_to_progress_fcts]
+            [
+                self.update_motor_thread_2.signal.progress.connect(i)
+                for i in connect_to_progress_fcts
+            ]
 
         if connect_to_finish_fcts is not None:
             assert isinstance(connect_to_finish_fcts, list)
-            [self.update_motor_thread_2.signal.finished.connect(i) for i in connect_to_finish_fcts]
+            [
+                self.update_motor_thread_2.signal.finished.connect(i)
+                for i in connect_to_finish_fcts
+            ]
 
         thread = threading.Thread(target=self.update_motor_thread_2.run)
         self.motor_moving_2.set()
@@ -1029,7 +1079,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.btn_home_stage_1.setText("stop motor")
         self.btn_move_to_pos_1.setText("stop motor")
-        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.update_motor_thread_1 = UpdateMotorThread(
+            self.stage_1, self.motor_moving_1
+        )
         self.connect_update_motor_1()
         thread = threading.Thread(target=self.update_motor_thread_1.run)
         self.motor_moving_1.set()
@@ -1045,7 +1097,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.btn_home_stage_2.setText("stop motor")
         self.btn_move_to_pos_2.setText("stop motor")
-        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.update_motor_thread_2 = UpdateMotorThread(
+            self.stage_2, self.motor_moving_2
+        )
         self.connect_update_motor_2()
         thread = threading.Thread(target=self.update_motor_thread_2.run)
         self.motor_moving_2.set()
@@ -1059,7 +1113,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             file.write(str(pos_um))
 
         self.update_lcd_pos_1(pos_um)
-        self.le_pos_fs_1.setText('0')
+        self.le_pos_fs_1.setText("0")
         self.update_target_fs_1()
 
     def set_T0_2(self):
@@ -1070,7 +1124,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             file.write(str(pos_um))
 
         self.update_lcd_pos_2(pos_um)
-        self.le_pos_fs_2.setText('0')
+        self.le_pos_fs_2.setText("0")
         self.update_target_fs_2()
 
     def update_trigon_1(self, flag):
@@ -1098,15 +1152,19 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             return  # exit
 
         if self.active_stream.ppifg is None:
-            raise_error(self.ErrorWindow, "ESTABLISH A PPIFG IN THE OSCILLOSCOPE TAB FIRST")
+            raise_error(
+                self.ErrorWindow, "ESTABLISH A PPIFG IN THE OSCILLOSCOPE TAB FIRST"
+            )
             return  # exit
 
         x = self.active_stream.single_acquire_array
 
         if active_correct:
-            x = x[np.argmax(x[:self.active_stream.ppifg]):][self.active_stream.ppifg // 2:]
+            x = x[np.argmax(x[: self.active_stream.ppifg]) :][
+                self.active_stream.ppifg // 2 :
+            ]
             N = len(x) // self.active_stream.ppifg
-            x = x[:N * self.active_stream.ppifg]
+            x = x[: N * self.active_stream.ppifg]
             x.resize((N, self.active_stream.ppifg))
 
             # __________________________________________________________________________________________________________
@@ -1120,7 +1178,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
             center = self.active_stream.ppifg // 2
             if apod:
-                x = x[:, center - apod // 2:center + apod // 2]
+                x = x[:, center - apod // 2 : center + apod // 2]
 
             x = np.mean(x, 0)
             ft = fft(x).__abs__()
@@ -1137,9 +1195,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             wl = np.where(nu > 0, sc.c * 1e6 / nu, np.nan)
 
             if self.Nyquist_Window % 2 == 0:
-                ft = ft[:len(ft) // 2]  # negative frequency side
+                ft = ft[: len(ft) // 2]  # negative frequency side
             else:
-                ft = ft[len(ft) // 2:]  # positive frequency side
+                ft = ft[len(ft) // 2 :]  # positive frequency side
 
             # __________________________________________________________________________________________________________
             # update the plot
@@ -1169,7 +1227,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.stage_1.move_by_um(step_um)  # start moving the motor in relative mode
 
-        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.update_motor_thread_1 = UpdateMotorThread(
+            self.stage_1, self.motor_moving_1
+        )
         self.connect_update_motor_1()
         thread = threading.Thread(target=self.update_motor_thread_1.run)
         self.motor_moving_1.set()
@@ -1192,9 +1252,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
-        self.stage_1.move_by_um(-step_um)  # start moving the motor in relative mode, note the minus sign
+        self.stage_1.move_by_um(
+            -step_um
+        )  # start moving the motor in relative mode, note the minus sign
 
-        self.update_motor_thread_1 = UpdateMotorThread(self.stage_1, self.motor_moving_1)
+        self.update_motor_thread_1 = UpdateMotorThread(
+            self.stage_1, self.motor_moving_1
+        )
         self.connect_update_motor_1()
         thread = threading.Thread(target=self.update_motor_thread_1.run)
         self.motor_moving_1.set()
@@ -1219,7 +1283,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.stage_2.move_by_um(step_um)  # start moving the motor in relative mode
 
-        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.update_motor_thread_2 = UpdateMotorThread(
+            self.stage_2, self.motor_moving_2
+        )
         self.connect_update_motor_2()
         thread = threading.Thread(target=self.update_motor_thread_2.run)
         self.motor_moving_2.set()
@@ -1242,9 +1308,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "value exceeds stage limits")
             return
 
-        self.stage_2.move_by_um(-step_um)  # start moving the motor in relative mode, note the minus sign
+        self.stage_2.move_by_um(
+            -step_um
+        )  # start moving the motor in relative mode, note the minus sign
 
-        self.update_motor_thread_2 = UpdateMotorThread(self.stage_2, self.motor_moving_2)
+        self.update_motor_thread_2 = UpdateMotorThread(
+            self.stage_2, self.motor_moving_2
+        )
         self.connect_update_motor_2()
         thread = threading.Thread(target=self.update_motor_thread_2.run)
         self.motor_moving_2.set()
@@ -1314,7 +1384,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         wl, ft = self.acquire_and_get_spectrum()
 
         if not active_correct_line_scan:
-            np.save(databackup_path + "spectra/" + '0.npy', ft)
+            np.save(databackup_path + "spectra/" + "0.npy", ft)
             self._N_loop = 1
 
         x1 = self.stage_1.pos_um
@@ -1323,10 +1393,12 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # calculate the step size in x and step size in y
         dx = x2 - x1
         dy = y2 - y1
-        r = np.sqrt(dx ** 2 + dy ** 2)
+        r = np.sqrt(dx**2 + dy**2)
         rx = dx / r  # rhat = (rx, ry), note that rx and / or ry can be negative
         ry = dy / r
-        step_x = step_um * rx  # step_x, step_y can be negative -> we will only call step_right in the loop below!
+        step_x = (
+            step_um * rx
+        )  # step_x, step_y can be negative -> we will only call step_right in the loop below!
         step_y = step_um * ry
         npts = np.floor(r / step_um)
 
@@ -1334,9 +1406,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
         # nm ~ 0, the finished flag returned before it was connected
         if abs(step_x * 1e3) < 10:
-            step_x = 0.
+            step_x = 0.0
         if abs(step_y * 1e3) < 10:
-            step_y = 0.
+            step_y = 0.0
 
         # store variables
         self._step_x = step_x
@@ -1353,7 +1425,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self._FT[0] = ft
         self._WL = wl
 
-        print(f'acquired point 0 of {self._npts}')
+        print(f"acquired point 0 of {self._npts}")
         self.curve_lscn.setData(wl, ft)
 
         # connect motor
@@ -1363,7 +1435,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
     def _check_if_ready_for_next(self):
         if self.motor_moving_2.is_set():
-            self.update_motor_thread_2.signal.finished.connect(self._check_if_ready_for_next)
+            self.update_motor_thread_2.signal.finished.connect(
+                self._check_if_ready_for_next
+            )
         else:
             self._lscn_step_two()
 
@@ -1385,9 +1459,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
                 self.step_right_2(step_um=self._step_y)
 
             if abs(self._step_x) > 0:
-                self.update_motor_thread_1.signal.finished.connect(self._check_if_ready_for_next)
+                self.update_motor_thread_1.signal.finished.connect(
+                    self._check_if_ready_for_next
+                )
             else:
-                self.update_motor_thread_2.signal.finished.connect(self._check_if_ready_for_next)
+                self.update_motor_thread_2.signal.finished.connect(
+                    self._check_if_ready_for_next
+                )
         else:
             self.lscn_stop_finished()
 
@@ -1403,10 +1481,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             self._FT[self._n + 1] = self.acquire_and_get_spectrum()[1]
             self.curve_lscn.setData(self._WL, self._FT[self._n + 1])
         else:
-            np.save(databackup_path + "spectra/" + f'{self._N_loop}.npy', self.acquire_and_get_spectrum()[1])
+            np.save(
+                databackup_path + "spectra/" + f"{self._N_loop}.npy",
+                self.acquire_and_get_spectrum()[1],
+            )
             self._N_loop += 1
 
-        print(f'acquired point {self._n + 1} of {self._npts}')
+        print(f"acquired point {self._n + 1} of {self._npts}")
 
         self._n += 1
         self._lscn_step_one()
@@ -1417,6 +1498,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     # this function will be called from _check_if_at_start instead of _line_scan_notrigger_2
     def _line_scan_withtrigger(self, x2, y2, step_um):
         if self.calling_from_image.is_set():
+
             def func():
                 self._line_scan_withtrigger(x2, y2, step_um)
 
@@ -1431,10 +1513,12 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # calculate the step size in x and step size in y
         dx = x2 - x1
         dy = y2 - y1
-        r = np.sqrt(dx ** 2 + dy ** 2)
+        r = np.sqrt(dx**2 + dy**2)
         rx = dx / r  # rhat = (rx, ry), note that rx and / or ry can be negative
         ry = dy / r
-        step_x = step_um * rx  # step_x, step_y can be negative -> we will only call step_right in the loop below!
+        step_x = (
+            step_um * rx
+        )  # step_x, step_y can be negative -> we will only call step_right in the loop below!
         step_y = step_um * ry
         npts = np.floor(r / step_um)
 
@@ -1442,12 +1526,14 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
         # nm ~ 0, the finished flag returned before it was connected
         if abs(step_x * 1e3) < 10:
-            step_x = 0.
+            step_x = 0.0
         if abs(step_y * 1e3) < 10:
-            step_y = 0.
+            step_y = 0.0
 
         if np.all([step_x, step_y]):
-            raise_error(self.ErrorWindow, "for triggered linescans, only one stage can move")
+            raise_error(
+                self.ErrorWindow, "for triggered linescans, only one stage can move"
+            )
             return
 
         # store variables
@@ -1483,8 +1569,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         # samples = self.active_stream.acquire_npts + 64
         samples = self.active_stream.acquire_npts + 32
-        self.active_stream.apply_ppifg(target_NBYTES=samples * 2,
-                                       prep_walk_correction=False)
+        self.active_stream.apply_ppifg(
+            target_NBYTES=samples * 2, prep_walk_correction=False
+        )
 
         # 2)
         # this sets the sample size of each segment (not byte size!)
@@ -1507,38 +1594,58 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
-            self.step_left_1(step_um=step_x)  # back up step_x so first data point is taken at the start line
-            self.update_motor_thread_1.signal.finished.connect(self._line_scan_withtrigger_2)
+            self.step_left_1(
+                step_um=step_x
+            )  # back up step_x so first data point is taken at the start line
+            self.update_motor_thread_1.signal.finished.connect(
+                self._line_scan_withtrigger_2
+            )
         elif abs(step_y) > 0:
             self.stage_2.step_um = step_y  # set trigger interval for stage 2
-            self.step_left_2(step_um=step_y)  # back up step_y so first data point is taken at the start line
-            self.update_motor_thread_2.signal.finished.connect(self._line_scan_withtrigger_2)
+            self.step_left_2(
+                step_um=step_y
+            )  # back up step_y so first data point is taken at the start line
+            self.update_motor_thread_2.signal.finished.connect(
+                self._line_scan_withtrigger_2
+            )
         else:
             raise_error(self.ErrorWindow, "step_x and step_y are zero!")
 
     def _line_scan_withtrigger_2(self):
         # 6)
         if abs(self._step_x) > 0:
+
             def func():
-                self.stage_1.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 1
-                self.move_to_pos_1(target_um=self._x2 + self._step_x * extra_steps_linescan,
-                                   # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
-                                   )
+                self.stage_1.set_max_vel(
+                    self._vel_mm_s
+                )  # set scan velocity for stage 1
+                self.move_to_pos_1(
+                    target_um=self._x2 + self._step_x * extra_steps_linescan,
+                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
+                )
+
         elif abs(self._step_y) > 0:
+
             def func():
-                self.stage_2.set_max_vel(self._vel_mm_s)  # set scan velocity for stage 2
-                self.move_to_pos_2(target_um=self._y2 + self._step_y * extra_steps_linescan,
-                                   # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
-                                   )
+                self.stage_2.set_max_vel(
+                    self._vel_mm_s
+                )  # set scan velocity for stage 2
+                self.move_to_pos_2(
+                    target_um=self._y2 + self._step_y * extra_steps_linescan,
+                    # connect_to_finish_fcts=[self.lscn_with_trigger_end_of_motion]
+                )
+
         else:
             raise_error(self.ErrorWindow, "both step_x and step_y are zero!")
             return
 
         # 7)
-        self.active_stream.stream_data(connect_to_progress_fcts=self._card_stream_progress_fcts,
-                                       connect_to_finish_fcts=self._card_stream_finished_fcts,
-                                       live_update_plot=False,
-                                       fcts_call_before_stream=[func])
+        self.active_stream.stream_data(
+            connect_to_progress_fcts=self._card_stream_progress_fcts,
+            connect_to_finish_fcts=self._card_stream_finished_fcts,
+            live_update_plot=False,
+            fcts_call_before_stream=[func],
+        )
 
     def DoAnalysis(self, X):
         ppifg = self.active_stream.ppifg
@@ -1555,7 +1662,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         # skip all odd loop counts
         if self._n % 2 == 0:
-            x = np.frombuffer(X, '<h')
+            x = np.frombuffer(X, "<h")
         else:
             self._n += 1
             return  # skip
@@ -1565,21 +1672,21 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             self._h += 1
             return  # skip
 
-        x = x[np.argmax(x[:ppifg]):][center:]
+        x = x[np.argmax(x[:ppifg]) :][center:]
         N = len(x) // self.active_stream.ppifg
-        x = x[:N * self.active_stream.ppifg]
+        x = x[: N * self.active_stream.ppifg]
         x.resize((N, self.active_stream.ppifg))
 
         if apod:
-            x = x[:, center - apod // 2:center + apod // 2]
+            x = x[:, center - apod // 2 : center + apod // 2]
 
         x = np.mean(x, 0)
         ft = fft(x).__abs__()
 
         if self.Nyquist_Window % 2 == 0:
-            ft = ft[:len(ft) // 2]  # negative frequency side
+            ft = ft[: len(ft) // 2]  # negative frequency side
         else:
-            ft = ft[len(ft) // 2:]  # positive frequency side
+            ft = ft[len(ft) // 2 :]  # positive frequency side
 
         self._FT[self._h] = ft
         self.curve_lscn.setData(self._WL[::n_skip], ft[::n_skip])
@@ -1601,10 +1708,14 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.btn_lscn_start.setText("start scan")
 
         if self.motor_moving_1.is_set():
-            self.update_motor_thread_1.signal.finished.connect(self.lscn_with_trigger_end_of_motion)
+            self.update_motor_thread_1.signal.finished.connect(
+                self.lscn_with_trigger_end_of_motion
+            )
             self.update_motor_thread_1.stop()
         elif self.motor_moving_2.is_set():
-            self.update_motor_thread_2.signal.finished.connect(self.lscn_with_trigger_end_of_motion)
+            self.update_motor_thread_2.signal.finished.connect(
+                self.lscn_with_trigger_end_of_motion
+            )
             self.update_motor_thread_2.stop()
         else:
             self.lscn_with_trigger_end_of_motion()
@@ -1700,17 +1811,25 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
     def _initialize_IMG_array(self):
         if self._scan_img == 0:  # x scan
-            self._IMG = np.zeros((len(self._FT), self._N_linescans + 1, len(self._FT[0])))
+            self._IMG = np.zeros(
+                (len(self._FT), self._N_linescans + 1, len(self._FT[0]))
+            )
             self._XPOS = np.zeros((len(self._FT), self._N_linescans + 1))
             self._YPOS = np.zeros((len(self._FT), self._N_linescans + 1))
 
         else:  # y scan
-            self._IMG = np.zeros((self._N_linescans + 1, len(self._FT), len(self._FT[0])))
+            self._IMG = np.zeros(
+                (self._N_linescans + 1, len(self._FT), len(self._FT[0]))
+            )
             self._XPOS = np.zeros((self._N_linescans + 1, len(self._FT)))
             self._YPOS = np.zeros((self._N_linescans + 1, len(self._FT)))
 
-        self.signal.finished.disconnect(self._initialize_IMG_array)  # disconnect this function after execution
-        self.signal.finished.connect(self._img_next_step)  # and connect to the new function
+        self.signal.finished.disconnect(
+            self._initialize_IMG_array
+        )  # disconnect this function after execution
+        self.signal.finished.connect(
+            self._img_next_step
+        )  # and connect to the new function
         self._img_next_step()
 
     def _img_next_step(self):
@@ -1723,36 +1842,44 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             self._IMG[:, self._n_img, :] = self._FT
             self._XPOS[:, self._n_img] = self._X
             self._YPOS[:, self._n_img] = self._Y
-            print(f'________________ acquired image point {self._n_img} of {self._N_linescans} ________________')
+            print(
+                f"________________ acquired image point {self._n_img} of {self._N_linescans} ________________"
+            )
 
             # update image plot
-            self.update_image(self._IMG[:, :self._n_img + 1])
+            self.update_image(self._IMG[:, : self._n_img + 1])
 
         else:  # Y scan
             self._IMG[self._n_img, :, :] = self._FT
             self._XPOS[self._n_img, :] = self._X
             self._YPOS[self._n_img, :] = self._Y
-            print(f'________________ acquired image point {self._n_img} of {self._N_linescans} ________________')
+            print(
+                f"________________ acquired image point {self._n_img} of {self._N_linescans} ________________"
+            )
 
             # update image plot
-            self.update_image(self._IMG[:self._n_img + 1])
+            self.update_image(self._IMG[: self._n_img + 1])
 
         # start the next scan (if there is one)
         if self._n_img < self._N_linescans:
             if self._scan_img == 0:  # x scan
-                self.line_scan_notrigger(self._x1_img,
-                                         self._y1_img + self._step_um_img,
-                                         self._x2_img,
-                                         self._y1_img + self._step_um_img,
-                                         self._step_um_img)
+                self.line_scan_notrigger(
+                    self._x1_img,
+                    self._y1_img + self._step_um_img,
+                    self._x2_img,
+                    self._y1_img + self._step_um_img,
+                    self._step_um_img,
+                )
                 self._y1_img += self._step_um_img
 
             else:  # y scan
-                self.line_scan_notrigger(self._x1_img + self._step_um_img,
-                                         self._y1_img,
-                                         self._x1_img + self._step_um_img,
-                                         self._y2_img,
-                                         self._step_um_img)
+                self.line_scan_notrigger(
+                    self._x1_img + self._step_um_img,
+                    self._y1_img,
+                    self._x1_img + self._step_um_img,
+                    self._y2_img,
+                    self._step_um_img,
+                )
                 self._x1_img += self._step_um_img
 
             self._n_img += 1
@@ -1771,9 +1898,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.plot_image.plotwidget.plot_image(arr)
 
 
-# %%____________________________________________________________________________________________________________________
-# Runnable classes
-# %%____________________________________________________________________________________________________________________
 class UpdateMotorThread:
     def __init__(self, motor_interface, threading_event):
         motor_interface: MotorInterface
@@ -1803,7 +1927,9 @@ class UpdateMotorThread:
         self.signal.finished.emit(None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = qt.QApplication([])
     hey = GuiTwoCards()
     app.exec()
+
+# %%
