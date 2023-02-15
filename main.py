@@ -1,3 +1,4 @@
+# %% package imports
 import threading
 import time
 import matplotlib.pyplot as plt
@@ -17,6 +18,7 @@ import PyQt5.QtGui as qtg
 import DataStreamApplication as dsa
 from scipy.integrate import simps
 
+# %% global variables
 edge_limit_buffer_mm = 0.0  # 1 um
 COM1 = "COM4"
 COM2 = "COM6"
@@ -27,7 +29,7 @@ extra_steps_linescan = 10
 trigger_stage_1_only = True
 apod = 0
 
-
+# %% function defs
 def fft(x, axis=None):
     """
     calculates the 1D fft of the numpy array x
@@ -72,6 +74,12 @@ def T_fs_to_dist_um(value_fs):
     return (c_mks * value_fs / 2) * 1e-9
 
 
+def raise_error(error_window, text):
+    error_window.set_text(text)
+    error_window.show()
+
+
+# %% utility classes
 class ErrorWindow(qt.QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
@@ -81,17 +89,13 @@ class ErrorWindow(qt.QWidget, Ui_Form):
         self.textBrowser.setText(text)
 
 
-def raise_error(error_window, text):
-    error_window.set_text(text)
-    error_window.show()
-
-
 class Signal(qtc.QObject):
     started = qtc.pyqtSignal(object)
     progress = qtc.pyqtSignal(object)
     finished = qtc.pyqtSignal(object)
 
 
+# %% motor interface
 class MotorInterface:
     """To help with integrating other pieces of hardware, I was thinking to
     keep classes in utilities.py more bare bone, and focus on hardware
@@ -182,9 +186,11 @@ class MotorInterface:
         self.motor.set_max_vel(m_s)
 
 
-# ______________________________________________________________________________________________________________________
-# This class is essentially the imaging version of the StreamWithGui class from RUN_DataStreamApplication.py
-# ______________________________________________________________________________________________________________________
+# %% GUI
+# _____________________________________________________________________________
+# This class is essentially the imaging version of the StreamWithGui class from
+# RUN_DataStreamApplication.py
+# _____________________________________________________________________________
 class StreamWithGui(rdsa.StreamWithGui):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1898,6 +1904,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.plot_image.plotwidget.plot_image(arr)
 
 
+# %% runnable classes
 class UpdateMotorThread:
     def __init__(self, motor_interface, threading_event):
         motor_interface: MotorInterface
@@ -1927,6 +1934,7 @@ class UpdateMotorThread:
         self.signal.finished.emit(None)
 
 
+# %% run call
 if __name__ == "__main__":
     app = qt.QApplication([])
     hey = GuiTwoCards()

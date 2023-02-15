@@ -1,6 +1,7 @@
 """
-All the PyGage commands sends a command to the digitizer, the digitizer will send back a success or error
-signal. If the command was a query it will either return the requested information, or an error signal.
+All the PyGage commands sends a command to the digitizer, the digitizer will
+send back a success or error signal. If the command was a query it will either
+return the requested information, or an error signal.
 """
 from __future__ import print_function, division
 import matplotlib.pyplot as plt
@@ -26,15 +27,27 @@ import ProcessingFunctions as pf
 import pyfftw
 from datetime import datetime
 
-from GageConstants import (CS_CURRENT_CONFIGURATION, CS_ACQUISITION_CONFIGURATION,
-                           CS_STREAM_TOTALDATA_SIZE_BYTES, CS_DATAPACKING_MODE, CS_MASKED_MODE,
-                           CS_GET_DATAFORMAT_INFO, CS_BBOPTIONS_STREAM, CS_MODE_USER1,
-                           CS_MODE_USER2, CS_EXTENDED_BOARD_OPTIONS, STM_TRANSFER_ERROR_FIFOFULL,
-                           CS_SEGMENTTAIL_SIZE_BYTES, CS_TIMESTAMP_TICKFREQUENCY)
-from GageErrors import (CS_MISC_ERROR,
-                        CS_INVALID_PARAMS_ID,
-                        CS_STM_TRANSFER_TIMEOUT,
-                        CS_STM_COMPLETED)
+from GageConstants import (
+    CS_CURRENT_CONFIGURATION,
+    CS_ACQUISITION_CONFIGURATION,
+    CS_STREAM_TOTALDATA_SIZE_BYTES,
+    CS_DATAPACKING_MODE,
+    CS_MASKED_MODE,
+    CS_GET_DATAFORMAT_INFO,
+    CS_BBOPTIONS_STREAM,
+    CS_MODE_USER1,
+    CS_MODE_USER2,
+    CS_EXTENDED_BOARD_OPTIONS,
+    STM_TRANSFER_ERROR_FIFOFULL,
+    CS_SEGMENTTAIL_SIZE_BYTES,
+    CS_TIMESTAMP_TICKFREQUENCY,
+)
+from GageErrors import (
+    CS_MISC_ERROR,
+    CS_INVALID_PARAMS_ID,
+    CS_STM_TRANSFER_TIMEOUT,
+    CS_STM_COMPLETED,
+)
 import array
 from Error_Window import Ui_Form
 import Acquire
@@ -43,19 +56,32 @@ import Acquire
 TRANSFER_TIMEOUT = -1  # milliseconds
 STREAM_BUFFERSIZE = 0x200000  # 2097152
 MAX_SEGMENT_COUNT = 25000
-inifile_default = 'include/Stream2Analysis.ini'
-inifile_acquire_default = 'include/Acquire.ini'
+inifile_default = "include/Stream2Analysis.ini"
+inifile_acquire_default = "include/Acquire.ini"
 plotchecklevel = 25
 show_walking = True
 
 
-# class used to hold streaming information, attributes listed in __slots__ below are assigned later
-# in the card_stream function. The purpose of __slots__ is that it does not allow the user to add new
-# attributes not listed in __slots__ (a kind of neat implementation I hadn't known about).
+# class used to hold streaming information, attributes listed in __slots__
+# below are assigned later in the card_stream function. The purpose of
+# __slots__ is that it does not allow the user to add new attributes not listed
+# in __slots__ (a kind of neat implementation I hadn't known about).
 class StreamInfo:
-    __slots__ = ['WorkBuffer', 'TimeStamp', 'BufferSize', 'SegmentSize', 'TailSize',
-                 'LeftOverSize', 'BytesToEndSegment', 'BytesToEndTail', 'DeltaTime',
-                 'LastTimeStamp', 'Segment', 'SegmentCountDown', 'SplitTail']
+    __slots__ = [
+        "WorkBuffer",
+        "TimeStamp",
+        "BufferSize",
+        "SegmentSize",
+        "TailSize",
+        "LeftOverSize",
+        "BytesToEndSegment",
+        "BytesToEndTail",
+        "DeltaTime",
+        "LastTimeStamp",
+        "Segment",
+        "SegmentCountDown",
+        "SplitTail",
+    ]
 
 
 class ErrorWindow(qt.QWidget, Ui_Form):
@@ -76,8 +102,8 @@ def raise_error(error_window, text):
 def setNewTriggerLevel(inifile=inifile_default, level_percent=2):
     config = ConfigParser()
     config.read(inifile)
-    config['Trigger1']['Level'] = str(level_percent)
-    with open(inifile, 'w') as configfile:
+    config["Trigger1"]["Level"] = str(level_percent)
+    with open(inifile, "w") as configfile:
         config.write(configfile)
     print(f"overwrote trigger level in {inifile} to {level_percent}")
 
@@ -85,8 +111,8 @@ def setNewTriggerLevel(inifile=inifile_default, level_percent=2):
 def setNewPlotCheckLevel(inifile=inifile_default, level_percent=2):
     config = ConfigParser()
     config.read(inifile)
-    config['PlotCheckLevel']['plotchecklevel'] = str(level_percent)
-    with open(inifile, 'w') as configfile:
+    config["PlotCheckLevel"]["plotchecklevel"] = str(level_percent)
+    with open(inifile, "w") as configfile:
         config.write(configfile)
     print(f"overwrote plotchecklevel in {inifile} to {level_percent}")
 
@@ -94,33 +120,37 @@ def setNewPlotCheckLevel(inifile=inifile_default, level_percent=2):
 def setSegmentSize(inifile=inifile_default, segmentsize=30000000):
     config = ConfigParser()
     config.read(inifile)
-    config['Acquisition']['segmentsize'] = str(segmentsize)
-    config['Acquisition']['depth'] = str(segmentsize)
+    config["Acquisition"]["segmentsize"] = str(segmentsize)
+    config["Acquisition"]["depth"] = str(segmentsize)
 
     if segmentsize != -1:
-        config['Acquisition']['segmentcount'] = str(-1)
+        config["Acquisition"]["segmentcount"] = str(-1)
     else:
-        config['Acquisition']['segmentcount'] = str(1)
+        config["Acquisition"]["segmentcount"] = str(1)
 
-    with open(inifile, 'w') as configfile:
+    with open(inifile, "w") as configfile:
         config.write(configfile)
     print(f"overwrote segment size in {inifile} to {segmentsize}")
 
 
 def setExtClk(inifile=inifile_default, extclk=1):
-    assert extclk == 1 or extclk == 0, f"external clock needs to be 0 or 1 but got {extclk}"
+    assert (
+        extclk == 1 or extclk == 0
+    ), f"external clock needs to be 0 or 1 but got {extclk}"
 
     config = ConfigParser()
     config.read(inifile)
-    config['Acquisition']['extclk'] = str(extclk)
+    config["Acquisition"]["extclk"] = str(extclk)
 
-    with open(inifile, 'w') as configfile:
+    with open(inifile, "w") as configfile:
         config.write(configfile)
     print(f"overwrote external clock in {inifile} to {extclk}")
 
 
 def setExtTrigger(inifile=inifile_default, exttrigger=0):  # self-trigger by default
-    assert exttrigger == 1 or exttrigger == 0, f"external trigger needs to be 0 or 1 but got {exttrigger}"
+    assert (
+        exttrigger == 1 or exttrigger == 0
+    ), f"external trigger needs to be 0 or 1 but got {exttrigger}"
 
     config = ConfigParser()
     config.read(inifile)
@@ -129,9 +159,11 @@ def setExtTrigger(inifile=inifile_default, exttrigger=0):  # self-trigger by def
         config["Trigger1"]["source"] = str(-1)  # external trigger is True
     else:
         source = 1
-        config["Trigger1"]["source"] = str(1)  # external trigger is False ->  self-trigger (channel 1)
+        config["Trigger1"]["source"] = str(
+            1
+        )  # external trigger is False ->  self-trigger (channel 1)
 
-    with open(inifile, 'w') as configfile:
+    with open(inifile, "w") as configfile:
         config.write(configfile)
     print(f"overwrote Trigger1 source in {inifile} to {source}")
 
@@ -140,7 +172,7 @@ def setExtTrigger(inifile=inifile_default, exttrigger=0):  # self-trigger by def
 # the handle is just an integer used to identify the card,
 # and sort of "is" the gage card
 def get_handle(index=1):
-    assert ((index == 1) or (index == 2)), f"index needs to be 1 or 2 but got {index}"
+    assert (index == 1) or (index == 2), f"index needs to be 1 or 2 but got {index}"
 
     if index == 1:
         status = PyGage.Initialize()
@@ -171,13 +203,19 @@ def normalize(vec):
 
 class Stream:
     """
-    This class was made by modifying the stream function in Gage's example code. It is inherited by the GUI class
-    which incorporates Stream into a GUI application. In addition to inheriting this class, GUI also inherits
+    This class was made by modifying the stream function in Gage's example
+    code. It is inherited by the GUI class which incorporates Stream into a GUI
+    application. In addition to inheriting this class, GUI also inherits
     QMainWindow and UI_MainWindow.
     """
 
-    def __init__(self, inifile=inifile_default, inifile_acquire=inifile_acquire_default,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        inifile=inifile_default,
+        inifile_acquire=inifile_acquire_default,
+        *args,
+        **kwargs,
+    ):
         self.g_tickFrequency = 0
         self.g_cardTotalData = []
         self.g_segmentCounted = []
@@ -231,16 +269,18 @@ class Stream:
 
     def connect_tracking_stream_update(self):
         self.trackingstream: TrackStreamProgress
-        self.trackingstream.signal.progress.connect(self.print_transfer_update_to_screen)
+        self.trackingstream.signal.progress.connect(
+            self.print_transfer_update_to_screen
+        )
         self.trackingstream.signal.finished.connect(self.print_transfer_ended_to_screen)
 
     def connect_card_stream_update(self):
         pass
 
     def dataBufferUpdate(self, arr):
-        # if you have a good idea for how to analyze data extremely fast you can go for it.
-        # otherwise it's not going to do anything
-        # no matter how hard you try it will never be fast enough
+        # if you have a good idea for how to analyze data extremely fast you
+        # can go for it. otherwise it's not going to do anything no matter how
+        # hard you try it will never be fast enough
         pass
 
     def adc_to_volts(self, arr):
@@ -255,7 +295,7 @@ class Stream:
 
     def initialization_before_streaming(self):
         # initialization common amongst all sample programs:
-        # ________________________________________________________________________________________
+        # _____________________________________________________________________
         self.handle = get_handle()
         if self.handle < 0:
             # get error string
@@ -266,7 +306,9 @@ class Stream:
             return
 
         self.system_info = PyGage.GetSystemInfo(self.handle)
-        if not isinstance(self.system_info, dict):  # if it's not a dict, it's an int indicating an error
+        if not isinstance(
+            self.system_info, dict
+        ):  # if it's not a dict, it's an int indicating an error
             error_string = PyGage.GetErrorString(self.system_info)
             print("Error: ", error_string)
             PyGage.FreeSystem(self.handle)
@@ -296,10 +338,13 @@ class Stream:
             PyGage.FreeSystem(self.handle)
             raise SystemExit
 
-        # This function sends configuration parameters that are in the driver to the CompuScope system associated
-        # with the handle. The parameters are sent to the driver via SetAcquisitionConfig. SetChannelConfig and
-        # SetTriggerConfig. The call to Commit sends these values to the hardware. If successful, the function
-        # returns CS_SUCCESS (1). Otherwise, a negative integer representing a CompuScope error code is returned.
+        # This function sends configuration parameters that are in the driver
+        # to the CompuScope system associated with the handle. The parameters
+        # are sent to the driver via SetAcquisitionConfig. SetChannelConfig and
+        # SetTriggerConfig. The call to Commit sends these values to the
+        # hardware. If successful, the function returns CS_SUCCESS (1).
+        # Otherwise, a negative integer representing a CompuScope error code is
+        # returned.
         status = PyGage.Commit(self.handle)
         if status < 0:
             # get error string
@@ -311,7 +356,7 @@ class Stream:
             return
             # raise SystemExit
 
-        # _____________________________________________________________________________________________
+        # _____________________________________________________________________
         # initialization done
 
         if self.streaming_buffer_size_to_set is not None:
@@ -334,8 +379,9 @@ class Stream:
         # initialize
         self.initialization_before_streaming()
 
-        # Returns the frequency of the timestamp counter in Hertz for the CompuScope system associated with the
-        # handle. Returns a negative number if an error occurred
+        # Returns the frequency of the timestamp counter in Hertz for the
+        # CompuScope system associated with the handle. Returns a negative
+        # number if an error occurred
         self.g_tickFrequency = PyGage.GetTimeStampFrequency(self.handle)
 
         if self.g_tickFrequency < 0:
@@ -347,39 +393,45 @@ class Stream:
         # get the big acquisition configuration dict
         acq_config = PyGage.GetAcquisitionConfig(self.handle)
 
-        # get total amount of data we expect to receive in bytes, negative if an error occurred
+        # get total amount of data we expect to receive in bytes, negative if
+        # an error occurred
         total_samples = PyGage.GetStreamTotalDataSizeInBytes(self.handle)
 
-        if total_samples < 0 and total_samples != acq_config['SegmentSize']:
+        if total_samples < 0 and total_samples != acq_config["SegmentSize"]:
             print("Error: ", PyGage.GetErrorString(total_samples))
             PyGage.FreeSystem(self.handle)
             raise SystemExit
 
         # convert from bytes -> samples and print it to screen
         if total_samples != -1:
-            total_samples = total_samples // self.system_info['SampleSize']
+            total_samples = total_samples // self.system_info["SampleSize"]
             print("total samples is: ", total_samples)
 
         # annoys me that I don't know if this is necessary but whatever
         del self.card_stream
         gc.collect()
-        self.card_stream = CardStream(self.handle, self.card_index,
-                                      self.system_info['SampleSize'],
-                                      self.app,
-                                      self.stream_started_event,
-                                      self.ready_for_stream_event,
-                                      self.stream_aborted_event,
-                                      self.stream_error_event,
-                                      self.g_segmentCounted,
-                                      self.g_cardTotalData, self)
+        self.card_stream = CardStream(
+            self.handle,
+            self.card_index,
+            self.system_info["SampleSize"],
+            self.app,
+            self.stream_started_event,
+            self.ready_for_stream_event,
+            self.stream_aborted_event,
+            self.stream_error_event,
+            self.g_segmentCounted,
+            self.g_cardTotalData,
+            self,
+        )
         self.connect_card_stream_update()
         self._a1 = self.card_stream._a1
         self._a2 = self.card_stream._a2
         thread_cardstream = threading.Thread(target=self.card_stream.run)
         thread_cardstream.start()
 
-        # the card_stream function should have set the self.ready_for_stream_event to true, if it is not true
-        # then an error occurred
+        # the card_stream function should have set the
+        # self.ready_for_stream_event to true, if it is not true then an error
+        # occurred
         set = self.ready_for_stream_event.wait(5)
         if not set:
             print("\nThread initialization error on card ", self.card_index)
@@ -387,9 +439,10 @@ class Stream:
             PyGage.FreeSystem(self.handle)
             raise SystemExit
 
-        # won't work anymore now that I've thrown the update onto a separate thread
-        # (a thread that is not main). Only the main thread can detect a keyboard interrupt
-        # print("\nStarting streaming. Press CTRL-C to abort\n\n")
+        # won't work anymore now that I've thrown the update onto a separate
+        # thread (a thread that is not main). Only the main thread can detect a
+        # keyboard interrupt print("\nStarting streaming. Press CTRL-C to
+        # abort\n\n")
 
         # start the capture!
         status = PyGage.StartCapture(self.handle)
@@ -416,7 +469,7 @@ class Stream:
         # I verified that the acquisition config is changed, but it doesn't work
         # for streaming...
         if self.trigger_hold_off is not None:
-            acq['TriggerHoldoff'] = int(self.trigger_hold_off)
+            acq["TriggerHoldoff"] = int(self.trigger_hold_off)
 
         if isinstance(acq, dict) and acq:
             status = PyGage.SetAcquisitionConfig(self.handle, acq)
@@ -429,18 +482,26 @@ class Stream:
         if sts == gs.INI_FILE_MISSING:
             print("Missing ini file, using defaults")
         elif sts == gs.PARAMETERS_MISSING:
-            print("One or more acquisition parameters missing, using defaults for missing values")
+            print(
+                "One or more acquisition parameters missing, "
+                "using defaults for missing values"
+            )
 
         self.system_info = PyGage.GetSystemInfo(self.handle)
 
-        if not isinstance(self.system_info, dict):  # if it's not a dict, it's an int indicating an error
+        if not isinstance(
+            self.system_info, dict
+        ):  # if it's not a dict, it's an int indicating an error
             return self.system_info
 
-        channel_increment = gs.CalculateChannelIndexIncrement(acq['Mode'], self.system_info['ChannelCount'],
-                                                              self.system_info['BoardCount'])
+        channel_increment = gs.CalculateChannelIndexIncrement(
+            acq["Mode"],
+            self.system_info["ChannelCount"],
+            self.system_info["BoardCount"],
+        )
 
         missing_parameters = False
-        for i in range(1, self.system_info['ChannelCount'] + 1, channel_increment):
+        for i in range(1, self.system_info["ChannelCount"] + 1, channel_increment):
             chan, sts = gs.LoadChannelConfiguration(self.handle, i, self.inifile_stream)
             if isinstance(chan, dict) and chan:
                 status = PyGage.SetChannelConfig(self.handle, i, chan)
@@ -452,11 +513,14 @@ class Stream:
                 missing_parameters = True
 
         if missing_parameters:
-            print("One or more channel parameters missing, using defaults for missing values")
+            print(
+                "One or more channel parameters missing, "
+                "using defaults for missing values"
+            )
 
         missing_parameters = False
-        # in this example we're only using 1 trigger source, if we use 
-        # self.system_info['TriggerMachineCount'] we'll get warnings about 
+        # in this example we're only using 1 trigger source, if we use
+        # self.system_info['TriggerMachineCount'] we'll get warnings about
         # using default values for the trigger engines that aren't in
         # the ini file
         trigger_count = 1
@@ -473,9 +537,12 @@ class Stream:
                 missing_parameters = True
 
         if missing_parameters:
-            print("One or more trigger parameters missing, using defaults for missing values")
+            print(
+                "One or more trigger parameters missing, "
+                "using defaults for missing values"
+            )
 
-        for i in range(self.system_info['BoardCount']):
+        for i in range(self.system_info["BoardCount"]):
             self.g_cardTotalData.append(0)
             self.g_segmentCounted.append(0)
 
@@ -485,32 +552,32 @@ class Stream:
         app = {}
         # set reasonable defaults
 
-        app['TimeoutOnTransfer'] = TRANSFER_TIMEOUT
-        app['BufferSize'] = STREAM_BUFFERSIZE
-        app['DoAnalysis'] = 0
-        app['ResultsFile'] = 'Result'
+        app["TimeoutOnTransfer"] = TRANSFER_TIMEOUT
+        app["BufferSize"] = STREAM_BUFFERSIZE
+        app["DoAnalysis"] = 0
+        app["ResultsFile"] = "Result"
 
         config = ConfigParser()
 
         # parse existing file
         config.read(self.inifile_stream)
-        section = 'StmConfig'
+        section = "StmConfig"
 
         if section in config:
             for key in config[section]:
                 key = key.lower()
                 value = config.get(section, key)
-                if key == 'doanalysis':
+                if key == "doanalysis":
                     if int(value) == 0:
-                        app['DoAnalysis'] = False
+                        app["DoAnalysis"] = False
                     else:
-                        app['DoAnalysis'] = True
-                elif key == 'timeoutontransfer':
-                    app['TimeoutOnTransfer'] = int(value)
-                elif key == 'buffersize':  # in bytes
-                    app['BufferSize'] = int(value)  # may need to be an int64
-                elif key == 'resultsfile':
-                    app['ResultsFile'] = value
+                        app["DoAnalysis"] = True
+                elif key == "timeoutontransfer":
+                    app["TimeoutOnTransfer"] = int(value)
+                elif key == "buffersize":  # in bytes
+                    app["BufferSize"] = int(value)  # may need to be an int64
+                elif key == "resultsfile":
+                    app["ResultsFile"] = value
         return app
 
     def initialize_stream(self):
@@ -534,23 +601,23 @@ class Stream:
 
         if extended_options & expert_options:
             print("\nSelecting Expert Stream from image 1")
-            acq['Mode'] |= CS_MODE_USER1
+            acq["Mode"] |= CS_MODE_USER1
         elif (extended_options >> 32) & expert_options:
             print("\nSelecting Expert Stream from image 2")
-            acq['Mode'] |= CS_MODE_USER2
+            acq["Mode"] |= CS_MODE_USER2
 
         # I'm getting an unknown error signal, so comment this out:
 
-        # comment out __________________________________________________________
+        # comment out _________________________________________________________
         # else:
         #     print("\nCurrent system does not support Expert Streaming")
         #     print("\nApplication terminated")
         #     return CS_MISC_ERROR
-        # _______________________________________________________________________
+        # _____________________________________________________________________
 
         else:
             # the eXpert image is loaded on Image1
-            acq['Mode'] |= CS_MODE_USER1
+            acq["Mode"] |= CS_MODE_USER1
             pass
 
         status = PyGage.SetAcquisitionConfig(self.handle, acq)
@@ -565,12 +632,21 @@ class Signal(qtc.QObject):
     finished = qtc.pyqtSignal(object)
 
 
-class CardStream():
-    def __init__(self, handle, card_index, sample_size, app,
-                 stream_started_event, ready_for_stream_event,
-                 stream_aborted_event, stream_error_event,
-                 g_segmentCounted, g_cardTotalData,
-                 parent):
+class CardStream:
+    def __init__(
+        self,
+        handle,
+        card_index,
+        sample_size,
+        app,
+        stream_started_event,
+        ready_for_stream_event,
+        stream_aborted_event,
+        stream_error_event,
+        g_segmentCounted,
+        g_cardTotalData,
+        parent,
+    ):
         parent: Gui
         self.handle = handle
         self.card_index = card_index
@@ -614,8 +690,8 @@ class CardStream():
         self.stream_info = StreamInfo()
 
         chan = PyGage.GetChannelConfig(handle, 1)
-        self.scale_factor = chan['InputRange'] / 2000
-        self.offset = chan['DcOffset'] / 1000
+        self.scale_factor = chan["InputRange"] / 2000
+        self.offset = chan["DcOffset"] / 1000
         self.sampleoffset = self.acq["SampleOffset"]
         self.sampleres = self.acq["SampleResolution"]
 
@@ -625,34 +701,48 @@ class CardStream():
         c = self.scale_factor
         d = self.offset
         self._a1 = a * c / b + d
-        self._a2 = - c / b
+        self._a2 = -c / b
 
     def run(self):
-        # create the two buffers for the card stream (to see the reason for the two buffers, see page 7 of the Advanced
-        # Sample Programs in CompuScope SDKs manual:
+        # create the two buffers for the card stream (to see the reason for the
+        # two buffers, see page 7 of the Advanced Sample Programs in CompuScope
+        # SDKs manual:
 
-        """The user first allocates two PC RAM contiguous buffers of identical size, called Buffer1 and Buffer2, 
-        that serve as targets for the data stream. If the operating system is unable to allocate the requested contiguous 
-        buffer, an allocation error will occur. The user toggles the two buffer targets as each one gets successively 
-        filled. While data are streaming to one buffer, the user analyzes ( consumes) waveform data from the second 
-        buffer. As long as the user is able to sustainably analyze (or consume) all waveform data in the buffer under 
-        analysis before the streaming target buffer is filled up with new waveform data, then the streaming acquisition 
-        can proceed indefinitely with no data loss 
+        """
+        The user first allocates two PC RAM contiguous buffers of identical
+        size, called Buffer1 and Buffer2, that serve as targets for the data
+        stream. If the operating system is unable to allocate the requested
+        contiguous buffer, an allocation error will occur. The user toggles the
+        two buffer targets as each one gets successively filled. While data are
+        streaming to one buffer, the user analyzes ( consumes) waveform data
+        from the second buffer. As long as the user is able to sustainably
+        analyze (or consume) all waveform data in the buffer under analysis
+        before the streaming target buffer is filled up with new waveform data,
+        then the streaming acquisition can proceed indefinitely with no data
+        loss
 
-        This function requests a contiguous buffer suitable for streaming from the driver for the CompuScope system 
-        identified with the handle. The cardIndex parameter indicates the index of the board in a master / slave system.
-        Board indices begin at 1. Use 1 for a single card system. The size parameter is the requested size of the buffer 
-        in bytes. If the function succeeds, the return value is a suitable buffer (from 19 numpy) for streaming. If the 
-        function fails, the return value is a negative error which represents a CompuScope error code. """
+        This function requests a contiguous buffer suitable for streaming from
+        the driver for the CompuScope system identified with the handle. The
+        cardIndex parameter indicates the index of the board in a master /
+        slave system. Board indices begin at 1. Use 1 for a single card system.
+        The size parameter is the requested size of the buffer in bytes. If the
+        function succeeds, the return value is a suitable buffer (from 19
+        numpy) for streaming. If the function fails, the return value is a
+        negative error which represents a CompuScope error code.
+        """
 
-        buffer1 = PyGage.GetStreamingBuffer(self.handle, self.card_index, self.app['BufferSize'])
+        buffer1 = PyGage.GetStreamingBuffer(
+            self.handle, self.card_index, self.app["BufferSize"]
+        )
         if isinstance(buffer1, int):
             print("Error getting streaming buffer 1: ", PyGage.GetErrorString(buffer1))
             self.stream_error_event.set()
             time.sleep(1)  # to give stream_error_wait() a chance to catch it
             return False
 
-        buffer2 = PyGage.GetStreamingBuffer(self.handle, self.card_index, self.app['BufferSize'])
+        buffer2 = PyGage.GetStreamingBuffer(
+            self.handle, self.card_index, self.app["BufferSize"]
+        )
         if isinstance(buffer2, int):
             print("Error getting streaming buffer 2: ", PyGage.GetErrorString(buffer2))
             PyGage.FreeStreamingBuffer(self.handle, self.card_index, buffer1)
@@ -661,15 +751,22 @@ class CardStream():
             return False
 
         # number of samples in data segment
-        data_in_segment_samples = self.acq['SegmentSize'] * (self.acq['Mode'] & CS_MASKED_MODE)
+        data_in_segment_samples = self.acq["SegmentSize"] * (
+            self.acq["Mode"] & CS_MASKED_MODE
+        )
 
-        """The status below is the segment tail size in bytes, otherwise status is an error. Now what is a tail you 
-        might ask? It is: 
+        """
+        The status below is the segment tail size in bytes, otherwise status is
+        an error. Now what is a tail you might ask? It is: 
         
-        Retrieve the size (in bytes) of the segment tail size for the CompuScope system identified by the handle. Some 
-        CompuScope boards have some data (tail) at the end of each segment which may contain extra information about the 
-        capture. If successful the return value is an unsigned integer containing the tail size in bytes. If 
-        unsuccessful, the return value is a negative integer representing a CompuScope error code. """
+        Retrieve the size (in bytes) of the segment tail size for the
+        CompuScope system identified by the handle. Some CompuScope boards have
+        some data (tail) at the end of each segment which may contain extra
+        information about the capture. If successful the return value is an
+        unsigned integer containing the tail size in bytes. If unsuccessful,
+        the return value is a negative integer representing a CompuScope error
+        code. 
+        """
 
         status = PyGage.GetSegmentTailSizeInBytes(self.handle)
         if status < 0:
@@ -678,9 +775,11 @@ class CardStream():
         segment_tail_size_in_bytes = status
 
         segment_size_in_bytes = data_in_segment_samples * self.sample_size
-        transfer_size_in_samples = self.app['BufferSize'] // self.sample_size
-        print("\nActual buffer size used for data streaming = ", self.app['BufferSize'])
-        print("\nActual sample size used for data streaming = ", transfer_size_in_samples)
+        transfer_size_in_samples = self.app["BufferSize"] // self.sample_size
+        print("\nActual buffer size used for data streaming = ", self.app["BufferSize"])
+        print(
+            "\nActual sample size used for data streaming = ", transfer_size_in_samples
+        )
 
         self.ready_for_stream_event.set()
 
@@ -693,9 +792,9 @@ class CardStream():
 
         # get_handle the work_buffer to buffer_1
         self.stream_info.WorkBuffer = np.zeros_like(buffer1)
-        self.stream_info.TimeStamp = array.array('q')
+        self.stream_info.TimeStamp = array.array("q")
 
-        self.stream_info.BufferSize = self.app['BufferSize']
+        self.stream_info.BufferSize = self.app["BufferSize"]
         self.stream_info.SegmentSize = segment_size_in_bytes
         self.stream_info.TailSize = segment_tail_size_in_bytes
         self.stream_info.BytesToEndSegment = segment_size_in_bytes
@@ -703,7 +802,7 @@ class CardStream():
         self.stream_info.LeftOverSize = tail_left_over
         self.stream_info.LastTimeStamp = 0
         self.stream_info.Segment = 1
-        self.stream_info.SegmentCountDown = self.acq['SegmentCount']
+        self.stream_info.SegmentCountDown = self.acq["SegmentCount"]
         self.stream_info.SplitTail = False
 
         # to avoid Access Violations, we need a copy of the WorkBuffer
@@ -717,13 +816,15 @@ class CardStream():
         self.parent.plotCopyOfWorkBuffer = self.parent.copyOfWorkBuffer1
         self.parent.workBuffer_initiated_event.set()
 
-        # work_buffer_active is initially false. So, the first loop simply acquires data into buffer1,
-        # then work_buffer_active is set to True, and the work_buffer is set to buffer1
+        # work_buffer_active is initially false. So, the first loop simply
+        # acquires data into buffer1, then work_buffer_active is set to True,
+        # and the work_buffer is set to buffer1
         #
-        # in the next loop data is acquired into buffer2, buffer1 (the work_buffer) is analyzed, and the work_buffer
-        # is set to buffer2
+        # in the next loop data is acquired into buffer2, buffer1 (the
+        # work_buffer) is analyzed, and the work_buffer is set to buffer2
         #
-        # in the next loop, data is acquired into buffer1 and we analyze buffer2, and so on...
+        # in the next loop, data is acquired into buffer1 and we analyze
+        # buffer2, and so on...
         while not done and not stream_completed_success:
             # check to see if the user aborted the stream
             # don't wait, just check (so set the timeout time to 0)
@@ -731,8 +832,9 @@ class CardStream():
             if set:  # user has aborted
                 break
 
-            # if loop count is odd, the buffer is buffer2, otherwise it is buffer1
-            # so starting with loop_count = 0, we go from buffer 1 to buffer 2 and so on.
+            # if loop count is odd, the buffer is buffer2, otherwise it is
+            # buffer1 so starting with loop_count = 0, we go from buffer 1 to
+            # buffer 2 and so on.
             if loop_count & 1:
                 buffer = buffer2
 
@@ -744,17 +846,26 @@ class CardStream():
                 copyOfWorkBuffer = self.parent.copyOfWorkBuffer1
                 self.parent.plotCopyOfWorkBuffer = self.parent.copyOfWorkBuffer2
 
-            """Transfers streaming data from the CompuScope system associated with the handle. The cardIndex parameter 
-            identifies which board in the system the transfer is for. For a single card system use 1. The buffer must be 
-            suitable for streaming and have been previously obtained by calling GetStreamingBuffer. The 
-            transferSizeInSamples is the requested transfer size in samples. If the function succeeds, the return value 
-            is CS_SUCCESS (1) and the data is returned in the buffer parameter. If the function fails, the return value 
-            is a negative integer which represents a CompuScope error code. """
-            status = PyGage.TransferStreamingData(self.handle, self.card_index, buffer, transfer_size_in_samples)
+            """
+            Transfers streaming data from the CompuScope system associated with
+            the handle. The cardIndex parameter identifies which board in the
+            system the transfer is for. For a single card system use 1. The
+            buffer must be suitable for streaming and have been previously
+            obtained by calling GetStreamingBuffer. The transferSizeInSamples
+            is the requested transfer size in samples. If the function
+            succeeds, the return value is CS_SUCCESS (1) and the data is
+            returned in the buffer parameter. If the function fails, the return
+            value is a negative integer which represents a CompuScope error
+            code. """
+            status = PyGage.TransferStreamingData(
+                self.handle, self.card_index, buffer, transfer_size_in_samples
+            )
 
             if status < 0:
                 if status == CS_STM_COMPLETED:
-                    stream_completed = True  # pass (-803 just indicates that the streaming acquisition completed)
+                    # pass (-803 just indicates that the streaming acquisition
+                    # completed)
+                    stream_completed = True
                 else:
                     print("Error: ", PyGage.GetErrorString(status))
                     self.stream_error_event.set()
@@ -769,16 +880,21 @@ class CardStream():
                 self.signal.progress.emit(copyOfWorkBuffer)
                 # print("work buffer signal emitted!")
 
-            # Wait for the DMA transfer on the current buffer to complete so we can loop back around to start a new one.
-            # Calling thread will sleep until the transfer completes
+            # Wait for the DMA transfer on the current buffer to complete so we
+            # can loop back around to start a new one. Calling thread will
+            # sleep until the transfer completes
 
-            # Returns the current DMA status of a streaming transfer for the board identified by cardIndex in the
-            # CompuScope system identified by the handle. For a single card system, cardIndex should be set to 1. The
-            # waitTimeout (in milliseconds) parameter controls how to long to wait before returning. If it is 0, the
-            # function returns immediately with the status. If it is not 0, the function will wait until the current DMA
-            # transfer is completed or the waitTimeout value has expired before returning. If the function fails, a
-            # negative integer representing a CompuScope error code is returned. Otherwise, a tuple is returned
-            # containing the following values:
+            # Returns the current DMA status of a streaming transfer for the
+            # board identified by cardIndex in the CompuScope system identified
+            # by the handle. For a single card system, cardIndex should be set
+            # to 1. The waitTimeout (in milliseconds) parameter controls how to
+            # long to wait before returning. If it is 0, the function returns
+            # immediately with the status. If it is not 0, the function will
+            # wait until the current DMA transfer is completed or the
+            # waitTimeout value has expired before returning. If the function
+            # fails, a negative integer representing a CompuScope error code is
+            # returned. Otherwise, a tuple is returned containing the following
+            # values:
 
             # tuple(0):    errorFlag – returns one or many error flags that may occur during streaming. Currently,
             #              STM_TRANSFER_ERROR_FIFOFULL is defined. This error indicates the self.application is not fast
@@ -791,12 +907,16 @@ class CardStream():
             #              transferred. If it is 0, there is more to transfer. In infinite streaming mode this value
             #              is always 0 and actualLength is the requested size of the transfer.
 
-            p = PyGage.GetStreamingTransferStatus(self.handle, self.card_index, self.app['TimeoutOnTransfer'])
+            p = PyGage.GetStreamingTransferStatus(
+                self.handle, self.card_index, self.app["TimeoutOnTransfer"]
+            )
 
             if isinstance(p, tuple):
-                # Used to be self.card_index - 1
-                # But I use a new instance for each card stream so I don't need to index it
-                self.g_cardTotalData[0] += p[1]  # have total_data be an array, 1 for each card
+                # Used to be self.card_index - 1 But I use a new instance for
+                # each card stream so I don't need to index it
+                self.g_cardTotalData[0] += p[
+                    1
+                ]  # have total_data be an array, 1 for each card
                 if p[2] == 0:
                     stream_completed_success = False
                 else:
@@ -807,7 +927,10 @@ class CardStream():
                     done = True
                     self.parent.terminate()
 
-                    # raise_error(self.parent.ErrorWindow, f"Fifo full detected on card {self.card_index}")
+                    # raise_error(
+                    #     self.parent.ErrorWindow,
+                    #     f"Fifo full detected on card {self.card_index}",
+                    # )
             else:  # error detected
                 done = True
                 if p == CS_STM_TRANSFER_TIMEOUT:
@@ -856,8 +979,9 @@ class TrackStreamProgress:
         # while loop to update status of the stream
         while not Done:
 
-            # see if the card_stream function set the self.parent.stream_error_event to True, if yes
-            # then exit, otherwise continue
+            # see if the card_stream function set the
+            # self.parent.stream_error_event to True, if yes then exit,
+            # otherwise continue
             set = self.parent.stream_error_event.wait(0.5)
             if set:  # error occured
                 Done = True
@@ -867,7 +991,9 @@ class TrackStreamProgress:
             # update progress (print to screen)
             self.parent.totalElapsedTime = tickNow - tickStart
             self.parent.systemTotalData = sum(self.parent.g_cardTotalData)
-            self.parent.totalBytes = self.parent.systemTotalData * self.parent.system_info['SampleSize']
+            self.parent.totalBytes = (
+                self.parent.systemTotalData * self.parent.system_info["SampleSize"]
+            )
 
             self.update_progress()
 
@@ -924,11 +1050,8 @@ class TrackStreamProgress:
 
             # the string to print to screen
             s = "Total: {0:.2f} MB, Rate: {1:6.2f} MB/s Elapsed time: {2:d}:{3:02d}:{4:02d}\r".format(
-                total,
-                rate,
-                hours,
-                minutes,
-                seconds)
+                total, rate, hours, minutes, seconds
+            )
             # sys.stdout.write(s)
             # sys.stdout.flush()
             self.signal.progress.emit(s)
@@ -943,28 +1066,41 @@ class CardStreamSaveData(CardStream):
         # create the two buffers for the card stream (to see the reason for the two buffers, see page 7 of the Advanced
         # Sample Programs in CompuScope SDKs manual:
 
-        """The user first allocates two PC RAM contiguous buffers of identical size, called Buffer1 and Buffer2,
-        that serve as targets for the data stream. If the operating system is unable to allocate the requested contiguous
-        buffer, an allocation error will occur. The user toggles the two buffer targets as each one gets successively
-        filled. While data are streaming to one buffer, the user analyzes ( consumes) waveform data from the second
-        buffer. As long as the user is able to sustainably analyze (or consume) all waveform data in the buffer under
-        analysis before the streaming target buffer is filled up with new waveform data, then the streaming acquisition
-        can proceed indefinitely with no data loss
+        """
+        The user first allocates two PC RAM contiguous buffers of identical
+        size, called Buffer1 and Buffer2, that serve as targets for the data
+        stream. If the operating system is unable to allocate the requested
+        contiguous buffer, an allocation error will occur. The user toggles the
+        two buffer targets as each one gets successively filled. While data are
+        streaming to one buffer, the user analyzes ( consumes) waveform data
+        from the second buffer. As long as the user is able to sustainably
+        analyze (or consume) all waveform data in the buffer under analysis
+        before the streaming target buffer is filled up with new waveform data,
+        then the streaming acquisition can proceed indefinitely with no data
+        loss
 
-        This function requests a contiguous buffer suitable for streaming from the driver for the CompuScope system
-        identified with the handle. The cardIndex parameter indicates the index of the board in a master / slave system.
-        Board indices begin at 1. Use 1 for a single card system. The size parameter is the requested size of the buffer
-        in bytes. If the function succeeds, the return value is a suitable buffer (from 19 numpy) for streaming. If the
-        function fails, the return value is a negative error which represents a CompuScope error code. """
+        This function requests a contiguous buffer suitable for streaming from
+        the driver for the CompuScope system identified with the handle. The
+        cardIndex parameter indicates the index of the board in a master /
+        slave system. Board indices begin at 1. Use 1 for a single card system.
+        The size parameter is the requested size of the buffer in bytes. If the
+        function succeeds, the return value is a suitable buffer (from 19
+        numpy) for streaming. If the function fails, the return value is a
+        negative error which represents a CompuScope error code.
+        """
 
-        buffer1 = PyGage.GetStreamingBuffer(self.handle, self.card_index, self.app['BufferSize'])
+        buffer1 = PyGage.GetStreamingBuffer(
+            self.handle, self.card_index, self.app["BufferSize"]
+        )
         if isinstance(buffer1, int):
             print("Error getting streaming buffer 1: ", PyGage.GetErrorString(buffer1))
             self.stream_error_event.set()
             time.sleep(1)  # to give stream_error_wait() a chance to catch it
             return False
 
-        buffer2 = PyGage.GetStreamingBuffer(self.handle, self.card_index, self.app['BufferSize'])
+        buffer2 = PyGage.GetStreamingBuffer(
+            self.handle, self.card_index, self.app["BufferSize"]
+        )
         if isinstance(buffer2, int):
             print("Error getting streaming buffer 2: ", PyGage.GetErrorString(buffer2))
             PyGage.FreeStreamingBuffer(self.handle, self.card_index, buffer1)
@@ -973,15 +1109,22 @@ class CardStreamSaveData(CardStream):
             return False
 
         # number of samples in data segment
-        data_in_segment_samples = self.acq['SegmentSize'] * (self.acq['Mode'] & CS_MASKED_MODE)
+        data_in_segment_samples = self.acq["SegmentSize"] * (
+            self.acq["Mode"] & CS_MASKED_MODE
+        )
 
-        """The status below is the segment tail size in bytes, otherwise status is an error. Now what is a tail you 
-        might ask? It is: 
+        """
+        The status below is the segment tail size in bytes, otherwise status is
+        an error. Now what is a tail you might ask? It is: 
 
-        Retrieve the size (in bytes) of the segment tail size for the CompuScope system identified by the handle. Some 
-        CompuScope boards have some data (tail) at the end of each segment which may contain extra information about the 
-        capture. If successful the return value is an unsigned integer containing the tail size in bytes. If 
-        unsuccessful, the return value is a negative integer representing a CompuScope error code. """
+        Retrieve the size (in bytes) of the segment tail size for the
+        CompuScope system identified by the handle. Some CompuScope boards have
+        some data (tail) at the end of each segment which may contain extra
+        information about the capture. If successful the return value is an
+        unsigned integer containing the tail size in bytes. If unsuccessful,
+        the return value is a negative integer representing a CompuScope error
+        code. 
+        """
 
         status = PyGage.GetSegmentTailSizeInBytes(self.handle)
         if status < 0:
@@ -990,9 +1133,11 @@ class CardStreamSaveData(CardStream):
         segment_tail_size_in_bytes = status
 
         segment_size_in_bytes = data_in_segment_samples * self.sample_size
-        transfer_size_in_samples = self.app['BufferSize'] // self.sample_size
-        print("\nActual buffer size used for data streaming = ", self.app['BufferSize'])
-        print("\nActual sample size used for data streaming = ", transfer_size_in_samples)
+        transfer_size_in_samples = self.app["BufferSize"] // self.sample_size
+        print("\nActual buffer size used for data streaming = ", self.app["BufferSize"])
+        print(
+            "\nActual sample size used for data streaming = ", transfer_size_in_samples
+        )
 
         self.ready_for_stream_event.set()
 
@@ -1005,9 +1150,9 @@ class CardStreamSaveData(CardStream):
 
         # get_handle the work_buffer to buffer_1
         self.stream_info.WorkBuffer = np.zeros_like(buffer1)
-        self.stream_info.TimeStamp = array.array('q')
+        self.stream_info.TimeStamp = array.array("q")
 
-        self.stream_info.BufferSize = self.app['BufferSize']
+        self.stream_info.BufferSize = self.app["BufferSize"]
         self.stream_info.SegmentSize = segment_size_in_bytes
         self.stream_info.TailSize = segment_tail_size_in_bytes
         self.stream_info.BytesToEndSegment = segment_size_in_bytes
@@ -1015,11 +1160,12 @@ class CardStreamSaveData(CardStream):
         self.stream_info.LeftOverSize = tail_left_over
         self.stream_info.LastTimeStamp = 0
         self.stream_info.Segment = 1
-        self.stream_info.SegmentCountDown = self.acq['SegmentCount']
+        self.stream_info.SegmentCountDown = self.acq["SegmentCount"]
         self.stream_info.SplitTail = False
 
-        # ______________________________________________________________________________________________________________
-        # this card stream now only saves the data and does not plot it, so I don't need these buffers any more
+        # _____________________________________________________________________
+        # this card stream now only saves the data and does not plot it, so I
+        # don't need these buffers any more
 
         # to avoid Access Violations, we need a copy of the WorkBuffer
         # for this Gui Application, the work buffer will not be larger
@@ -1029,7 +1175,7 @@ class CardStreamSaveData(CardStream):
         # gc.collect()
         # self.parent.copyOfWorkBuffer1 = np.zeros_like(buffer1)
         # self.parent.copyOfWorkBuffer2 = np.zeros_like(buffer1)
-        # ______________________________________________________________________________________________________________
+        # _____________________________________________________________________
 
         self.parent.workBuffer_initiated_event.set()
 
@@ -1040,41 +1186,59 @@ class CardStreamSaveData(CardStream):
 
         # if already saving data, don't bother!
         if not self.parent.save_data_loopcount:
-            self.parent.data_storage_buffer = np.zeros((self.N_ifgs_to_fill_buffer, self.app['BufferSize']),
-                                                       dtype=np.uint8)
+            self.parent.data_storage_buffer = np.zeros(
+                (self.N_ifgs_to_fill_buffer, self.app["BufferSize"]), dtype=np.uint8
+            )
 
-        # work_buffer_active is initially false. So, the first loop simply acquires data into buffer1,
-        # then work_buffer_active is set to True, and the work_buffer is set to buffer1
+        # work_buffer_active is initially false. So, the first loop simply
+        # acquires data into buffer1, then work_buffer_active is set to True,
+        # and the work_buffer is set to buffer1
         #
-        # in the next loop data is acquired into buffer2, buffer1 (the work_buffer) is analyzed, and the work_buffer
-        # is set to buffer2
+        # in the next loop data is acquired into buffer2, buffer1 (the
+        # work_buffer) is analyzed, and the work_buffer is set to buffer2
         #
-        # in the next loop, data is acquired into buffer1 and we analyze buffer2, and so on...
-        while not done and (not stream_completed_success) and (loop_count - 1 < self.N_ifgs_to_fill_buffer):
+        # in the next loop, data is acquired into buffer1 and we analyze
+        # buffer2, and so on...
+        while (
+            not done
+            and (not stream_completed_success)
+            and (loop_count - 1 < self.N_ifgs_to_fill_buffer)
+        ):
             # check to see if the user aborted the stream
             # don't wait, just check (so set the timeout time to 0)
             set = self.stream_aborted_event.wait(0)
             if set:  # user has aborted
                 break
 
-            # if loop count is odd, the buffer is buffer2, otherwise it is buffer1
-            # so starting with loop_count = 0, we go from buffer 1 to buffer 2 and so on.
+            # if loop count is odd, the buffer is buffer2, otherwise it is
+            # buffer1 so starting with loop_count = 0, we go from buffer 1 to
+            # buffer 2 and so on.
             if loop_count & 1:
                 buffer = buffer2
             else:
                 buffer = buffer1
 
-            """Transfers streaming data from the CompuScope system associated with the handle. The cardIndex parameter 
-            identifies which board in the system the transfer is for. For a single card system use 1. The buffer must be 
-            suitable for streaming and have been previously obtained by calling GetStreamingBuffer. The 
-            transferSizeInSamples is the requested transfer size in samples. If the function succeeds, the return value 
-            is CS_SUCCESS (1) and the data is returned in the buffer parameter. If the function fails, the return value 
-            is a negative integer which represents a CompuScope error code. """
-            status = PyGage.TransferStreamingData(self.handle, self.card_index, buffer, transfer_size_in_samples)
+            """
+            Transfers streaming data from the CompuScope system associated with
+            the handle. The cardIndex parameter identifies which board in the
+            system the transfer is for. For a single card system use 1. The
+            buffer must be suitable for streaming and have been previously
+            obtained by calling GetStreamingBuffer. The transferSizeInSamples
+            is the requested transfer size in samples. If the function
+            succeeds, the return value is CS_SUCCESS (1) and the data is
+            returned in the buffer parameter. If the function fails, the return
+            value is a negative integer which represents a CompuScope error
+            code. 
+            """
+            status = PyGage.TransferStreamingData(
+                self.handle, self.card_index, buffer, transfer_size_in_samples
+            )
 
             if status < 0:
                 if status == CS_STM_COMPLETED:
-                    stream_completed = True  # pass (-803 just indicates that the streaming acquisition completed)
+                    # pass (-803 just indicates that the streaming acquisition
+                    # completed)
+                    stream_completed = True
                 else:
                     print("Error: ", PyGage.GetErrorString(status))
                     self.stream_error_event.set()
@@ -1086,29 +1250,39 @@ class CardStreamSaveData(CardStream):
 
                 # save the data!
                 if not self.parent.save_data_loopcount:
-                    self.parent.data_storage_buffer[loop_count - 1][:] = self.stream_info.WorkBuffer[:]
+                    self.parent.data_storage_buffer[loop_count - 1][
+                        :
+                    ] = self.stream_info.WorkBuffer[:]
 
-                # if active data backup is on, save data to a file in the backup folder, make sure to set it
-                # differently for each card!
+                # if active data backup is on, save data to a file in the
+                # backup folder, make sure to set it differently for each card!
                 else:
                     # the save path is the data backup path
                     # and the name goes as: the loop count + date time
                     # there is also a time stamp in the data segment itself
-                    self.stream_info.WorkBuffer.tofile(self.parent.databackup_path +
-                                                       f'LoopCount_{loop_count}_Datetime_' +
-                                                       datetime.now().strftime("%d%m%Y_%H_%M_%S") + '.bin')
+                    self.stream_info.WorkBuffer.tofile(
+                        self.parent.databackup_path
+                        + f"LoopCount_{loop_count}_Datetime_"
+                        + datetime.now().strftime("%d%m%Y_%H_%M_%S")
+                        + ".bin"
+                    )
                 print(loop_count)
 
-            # Wait for the DMA transfer on the current buffer to complete so we can loop back around to start a new one.
-            # Calling thread will sleep until the transfer completes
+            # Wait for the DMA transfer on the current buffer to complete so we
+            # can loop back around to start a new one. Calling thread will
+            # sleep until the transfer completes
 
-            # Returns the current DMA status of a streaming transfer for the board identified by cardIndex in the
-            # CompuScope system identified by the handle. For a single card system, cardIndex should be set to 1. The
-            # waitTimeout (in milliseconds) parameter controls how to long to wait before returning. If it is 0, the
-            # function returns immediately with the status. If it is not 0, the function will wait until the current DMA
-            # transfer is completed or the waitTimeout value has expired before returning. If the function fails, a
-            # negative integer representing a CompuScope error code is returned. Otherwise, a tuple is returned
-            # containing the following values:
+            # Returns the current DMA status of a streaming transfer for the
+            # board identified by cardIndex in the CompuScope system identified
+            # by the handle. For a single card system, cardIndex should be set
+            # to 1. The waitTimeout (in milliseconds) parameter controls how to
+            # long to wait before returning. If it is 0, the function returns
+            # immediately with the status. If it is not 0, the function will
+            # wait until the current DMA transfer is completed or the
+            # waitTimeout value has expired before returning. If the function
+            # fails, a negative integer representing a CompuScope error code is
+            # returned. Otherwise, a tuple is returned containing the following
+            # values:
 
             # tuple(0):    errorFlag – returns one or many error flags that may occur during streaming. Currently,
             #              STM_TRANSFER_ERROR_FIFOFULL is defined. This error indicates the self.application is not fast
@@ -1121,12 +1295,16 @@ class CardStreamSaveData(CardStream):
             #              transferred. If it is 0, there is more to transfer. In infinite streaming mode this value
             #              is always 0 and actualLength is the requested size of the transfer.
 
-            p = PyGage.GetStreamingTransferStatus(self.handle, self.card_index, self.app['TimeoutOnTransfer'])
+            p = PyGage.GetStreamingTransferStatus(
+                self.handle, self.card_index, self.app["TimeoutOnTransfer"]
+            )
 
             if isinstance(p, tuple):
                 # Used to be self.card_index - 1
                 # But I use a new instance for each card stream so I don't need to index it
-                self.g_cardTotalData[0] += p[1]  # have total_data be an array, 1 for each card
+                self.g_cardTotalData[0] += p[
+                    1
+                ]  # have total_data be an array, 1 for each card
                 if p[2] == 0:
                     stream_completed_success = False
                 else:
@@ -1137,7 +1315,10 @@ class CardStreamSaveData(CardStream):
                     done = True
                     self.parent.terminate()
 
-                    # raise_error(self.parent.ErrorWindow, f"Fifo full detected on card {self.card_index}")
+                    # raise_error(
+                    #     self.parent.ErrorWindow,
+                    #     f"Fifo full detected on card {self.card_index}",
+                    # )
 
             else:  # error detected
                 done = True
@@ -1178,9 +1359,13 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
         self.setupUi(self)
         self.show()
 
-        self.plotwindow = pw.PlotWindow(self.le_ifgplot_xmin, self.le_ifgplot_xmax,
-                                        self.le_ifgplot_ymin, self.le_ifgplot_ymax,
-                                        self.gv_ifgplot)
+        self.plotwindow = pw.PlotWindow(
+            self.le_ifgplot_xmin,
+            self.le_ifgplot_xmax,
+            self.le_ifgplot_ymin,
+            self.le_ifgplot_ymax,
+            self.gv_ifgplot,
+        )
         self.curve = pw.create_curve()
         self.plotwindow.plotwidget.addItem(self.curve)
         self.general_connects()
@@ -1215,27 +1400,28 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
 
         self.card_index = 1
 
-        # set the cell widget for the table to QLineEdits so that we can employ a QIntValidator
+        # set the cell widget for the table to QLineEdits so that we can employ
+        # a QIntValidator
         config = ConfigParser()
         config.read(self.inifile_stream)
-        level = config['Trigger1']['Level']
-        plotchecklevel = config['PlotCheckLevel']['plotchecklevel']
-        segment_size = config['Acquisition']['segmentsize']
-        extclk = config['Acquisition']['extclk']
+        level = config["Trigger1"]["Level"]
+        plotchecklevel = config["PlotCheckLevel"]["plotchecklevel"]
+        segment_size = config["Acquisition"]["segmentsize"]
+        extclk = config["Acquisition"]["extclk"]
         self.tableWidget.item(0, 0).setText(str(level))
         self.tableWidget.item(1, 0).setText(str(plotchecklevel))
         self.tableWidget.item(2, 0).setText(str(segment_size))
         self.tableWidget.item(3, 0).setText(str(extclk))
-        self.saved_table_widget_item_text = 'hello world'
+        self.saved_table_widget_item_text = "hello world"
 
         self.save_data_loopcount = False
-        self.databackup_path = 'DataBackup/single_card/'
+        self.databackup_path = "DataBackup/single_card/"
 
     @property
     def plotchecklevel(self):
         config = ConfigParser()
         config.read(self.inifile_stream)
-        plotchecklevel = config['PlotCheckLevel']['plotchecklevel']
+        plotchecklevel = config["PlotCheckLevel"]["plotchecklevel"]
         return float(plotchecklevel)
 
     def save_table_item(self, row, col):
@@ -1257,14 +1443,18 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
     def set_new_plotchecklevel(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         plotchecklevel = int(self.tableWidget.item(row, col).text())
 
         if plotchecklevel <= 0:
             raise_error(self.ErrorWindow, "trigger level needs to be >= 0 ")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         setNewPlotCheckLevel(self.inifile_stream, plotchecklevel)
@@ -1272,14 +1462,18 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
     def set_new_trigger_level(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         level_percent = int(self.tableWidget.item(row, col).text())
 
         if level_percent <= 0:
             raise_error(self.ErrorWindow, "trigger level needs to be >= 0 ")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         setNewTriggerLevel(self.inifile_stream, level_percent)
@@ -1288,14 +1482,21 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
     def set_segment_size(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         segment_size = int(self.tableWidget.item(row, col).text())
 
         if segment_size < -1:
-            raise_error(self.ErrorWindow, f"segment size cannot be less than -1 but got {segment_size}")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            raise_error(
+                self.ErrorWindow,
+                f"segment size cannot be less than -1 but got {segment_size}",
+            )
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         setSegmentSize(self.inifile_stream, segment_size)
@@ -1303,14 +1504,20 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
     def set_extclk(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         extclk = int(self.tableWidget.item(row, col).text())
 
         if not (extclk == 0 or extclk == 1):
-            raise_error(self.ErrorWindow, f"external clock must be 0 or 1 but got {extclk}")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            raise_error(
+                self.ErrorWindow, f"external clock must be 0 or 1 but got {extclk}"
+            )
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         setExtClk(self.inifile_stream, extclk)
@@ -1328,8 +1535,9 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
 
     def stream_data(self):
         """
-        This overrides the stream_data method in Stream(). It adds the option to save data by running
-        CardStreamSaveData instead of CardStream. It is otherwise the same as stream_data in Stream.
+        This overrides the stream_data method in Stream(). It adds the option
+        to save data by running CardStreamSaveData instead of CardStream. It is
+        otherwise the same as stream_data in Stream.
         """
 
         if self.card_stream_running.is_set():
@@ -1349,8 +1557,9 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
         # initialize
         self.initialization_before_streaming()
 
-        # Returns the frequency of the timestamp counter in Hertz for the CompuScope system associated with the
-        # handle. negative if an error occurred
+        # Returns the frequency of the timestamp counter in Hertz for the
+        # CompuScope system associated with the handle. negative if an error
+        # occurred
         self.g_tickFrequency = PyGage.GetTimeStampFrequency(self.handle)
 
         if self.g_tickFrequency < 0:
@@ -1362,60 +1571,74 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
         # get the big acquisition configuration dict
         acq_config = PyGage.GetAcquisitionConfig(self.handle)
 
-        # get total amount of data we expect to receive in bytes, negative if an error occurred
+        # get total amount of data we expect to receive in bytes, negative if
+        # an error occurred
         total_samples = PyGage.GetStreamTotalDataSizeInBytes(self.handle)
 
-        if total_samples < 0 and total_samples != acq_config['SegmentSize']:
+        if total_samples < 0 and total_samples != acq_config["SegmentSize"]:
             print("Error: ", PyGage.GetErrorString(total_samples))
             PyGage.FreeSystem(self.handle)
             raise SystemExit
 
         # convert from bytes -> samples and print it to screen
         if total_samples != -1:
-            total_samples = total_samples // self.system_info['SampleSize']
+            total_samples = total_samples // self.system_info["SampleSize"]
             print("total samples is: ", total_samples)
 
         if self.chkbx_save_data.isChecked():
             self.calc_data_storage_buffer_size()
             pass
 
-        """We first initialize and start the card stream thread. The card stream thread initializes two buffers and 
-        handles the data transfer to the buffers. Then we send the command to the Gage Card to start the data capture. 
+        """
+        We first initialize and start the card stream thread. The card stream
+        thread initializes two buffers and handles the data transfer to the
+        buffers. Then we send the command to the Gage Card to start the data
+        capture. 
         
-        After that, we initialize and start the thread that tracks the progress of the data stream. This thread emits 
-        signals that are used to plot data on the GUI. """
+        After that, we initialize and start the thread that tracks the progress
+        of the data stream. This thread emits signals that are used to plot
+        data on the GUI. """
 
         # annoys me that I don't know if this is necessary but whatever
         del self.card_stream
         gc.collect()
         if self.chkbx_save_data.isChecked():
-            self.card_stream = CardStreamSaveData(self.handle, self.card_index,
-                                                  self.system_info['SampleSize'],
-                                                  self.app,
-                                                  self.stream_started_event,
-                                                  self.ready_for_stream_event,
-                                                  self.stream_aborted_event,
-                                                  self.stream_error_event,
-                                                  self.g_segmentCounted,
-                                                  self.g_cardTotalData, self)
+            self.card_stream = CardStreamSaveData(
+                self.handle,
+                self.card_index,
+                self.system_info["SampleSize"],
+                self.app,
+                self.stream_started_event,
+                self.ready_for_stream_event,
+                self.stream_aborted_event,
+                self.stream_error_event,
+                self.g_segmentCounted,
+                self.g_cardTotalData,
+                self,
+            )
         else:
-            self.card_stream = CardStream(self.handle, self.card_index,
-                                          self.system_info['SampleSize'],
-                                          self.app,
-                                          self.stream_started_event,
-                                          self.ready_for_stream_event,
-                                          self.stream_aborted_event,
-                                          self.stream_error_event,
-                                          self.g_segmentCounted,
-                                          self.g_cardTotalData, self)
+            self.card_stream = CardStream(
+                self.handle,
+                self.card_index,
+                self.system_info["SampleSize"],
+                self.app,
+                self.stream_started_event,
+                self.ready_for_stream_event,
+                self.stream_aborted_event,
+                self.stream_error_event,
+                self.g_segmentCounted,
+                self.g_cardTotalData,
+                self,
+            )
         self.connect_card_stream_update()
         self._a1 = self.card_stream._a1
         self._a2 = self.card_stream._a2
         thread_cardstream = threading.Thread(target=self.card_stream.run)
         thread_cardstream.start()
 
-        # the card_stream function should have set the self.ready_for_stream_event to true, if it is not true
-        # then an error occurred
+        # the card_stream function should have set the
+        # self.ready_for_stream_event to true, if it is not true then an error
+        # occurred
         set = self.ready_for_stream_event.wait(5)
         if not set:
             print("\nThread initialization error on card ", self.card_index)
@@ -1423,8 +1646,8 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
             PyGage.FreeSystem(self.handle)
             raise SystemExit
 
-        # won't work anymore now that I've thrown the update onto a separate thread
-        # (a thread that is not main)
+        # won't work anymore now that I've thrown the update onto a separate
+        # thread (a thread that is not main)
         # print("\nStarting streaming. Press CTRL-C to abort\n\n")
 
         # start the capture!
@@ -1450,8 +1673,9 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
         if self.data_storage_size is None:
             self.update_storage_buffer_size()
 
-        # I'm expecting this function to be called by stream_data after self.app has been initialized
-        buffersize = self.app['BufferSize']
+        # I'm expecting this function to be called by stream_data after
+        # self.app has been initialized
+        buffersize = self.app["BufferSize"]
         N = int(np.ceil(self.data_storage_size / buffersize))
         self.N_ifgs_to_fill_buffer = N
 
@@ -1463,17 +1687,22 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
 
         if self.streaming_buffer_size_to_set is not None:
             if num < self.streaming_buffer_size_to_set:
-                raise_error(self.ErrorWindow, "needs to at least be the streaming buffer size. "
-                                              "I am setting this instead to " +
-                            str(self.streaming_buffer_size_to_set / 1e6))
+                raise_error(
+                    self.ErrorWindow,
+                    "needs to at least be the streaming buffer size. "
+                    "I am setting this instead to "
+                    + str(self.streaming_buffer_size_to_set / 1e6),
+                )
                 num = self.streaming_buffer_size_to_set
                 self.le_buffer_size_MB.setText(str(num / 1e6))
 
         elif self.app is not None:
             if num < self.app["BufferSize"]:
-                raise_error(self.ErrorWindow, "needs to at least be the streaming buffer size. "
-                                              "I am setting this instead to " +
-                            str(self.app["BufferSize"] / 1e6))
+                raise_error(
+                    self.ErrorWindow,
+                    "needs to at least be the streaming buffer size. "
+                    "I am setting this instead to " + str(self.app["BufferSize"] / 1e6),
+                )
                 num = self.app["BufferSize"]
                 self.le_buffer_size_MB.setText(str(num / 1e6))
 
@@ -1539,7 +1768,9 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
         self.btn_start_stream.clicked.connect(self.stream_data)
         self.btn_stop_stream.clicked.connect(self.terminate)
 
-        self.le_npts_post_trigger.editingFinished.connect(self.update_acquire_post_trigger_npts_from_le)
+        self.le_npts_post_trigger.editingFinished.connect(
+            self.update_acquire_post_trigger_npts_from_le
+        )
         self.btn_single_acquire.clicked.connect(self.acquire)
 
         self.btn_apply_ppifg.clicked.connect(self.apply_ppifg)
@@ -1561,7 +1792,6 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
 
     def updateDisplay(self, X):
         x, y = X
-        # y = np.frombuffer(y, dtype='h') <- already implemented this in the UpdateDisplay class
         n_plot = self._nplot
         if not self.adjusted_buffer_to_ppifg:
             y = self.adc_to_volts(y)
@@ -1572,35 +1802,43 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
 
             if show_walking:
                 # section of y that will be plotted to screen
-                section = y[self.center_ind - n_plot // 2:self.center_ind + n_plot // 2]
+                section = y[
+                    self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2
+                ]
 
-                # the indices of values in section that are above the level threshold indicating the presence of an
-                # interferogram
-                ind = (abs(section - np.mean(section)) > self._level - np.mean(section)).nonzero()[0]
+                # the indices of values in section that are above the level
+                # threshold indicating the presence of an interferogram
+                ind = (
+                    abs(section - np.mean(section)) > self._level - np.mean(section)
+                ).nonzero()[0]
 
-                # if the number of indices is less than half the original value (set when we know there was an
-                # interferogram in there)
+                # if the number of indices is less than half the original value
+                # (set when we know there was an interferogram in there)
                 if 0 < len(ind) < self._N_ind * 0.25:
                     avg = np.mean(ind)
 
-                    # if the interferogram is walking out right of the screen, the correction should be to move it left (
-                    # the plot window would move right)
+                    # if the interferogram is walking out right of the screen,
+                    # the correction should be to move it left ( the plot
+                    # window would move right)
                     if avg > n_plot // 2:
                         correction = n_plot
 
-                    # otherwise it is walking out to the left of the screen, and the correction should be to move it
-                    # right (the plot window would move left)
+                    # otherwise it is walking out to the left of the screen,
+                    # and the correction should be to move it right (the plot
+                    # window would move left)
                     else:
                         correction = -n_plot
 
-                    # an easy way to implement this correction is to move to the next interferogram in the buffer
+                    # an easy way to implement this correction is to move to
+                    # the next interferogram in the buffer
                     self.center_ind += self.ppifg + correction
 
                     # when we reach the end of the buffer, wrap around
                     if self.center_ind > len(y):
                         self.center_ind -= len(y)
 
-                # same thing as above, except if the number of indices is already 0, use the previous set of indices
+                # same thing as above, except if the number of indices is
+                # already 0, use the previous set of indices
                 elif len(ind) == 0 and self._ind_old is not None:
                     avg = np.mean(self._ind_old)
                     if avg > n_plot // 2:
@@ -1612,14 +1850,17 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
                     if self.center_ind > len(y):
                         self.center_ind -= len(y)
 
-                # save the current set of indices in case this set passed without correction, but the next set has no
-                # elements
+                # save the current set of indices in case this set passed
+                # without correction, but the next set has no elements
                 self._ind_old = ind
 
-            self.curve.setData(x=x[self.center_ind - n_plot // 2:self.center_ind + n_plot // 2],
-                               y=y[self.center_ind - n_plot // 2:self.center_ind + n_plot // 2])
+            self.curve.setData(
+                x=x[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
+                y=y[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
+            )
 
-        # self.update_progress_bar() <- we do not update progress bar and display simultaneously anymore
+        # self.update_progress_bar() <- we do not update progress bar and
+        # display simultaneously anymore
 
     def change_stream_buffer_size(self, num, mB=False):
         if mB:
@@ -1652,19 +1893,23 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
             raise_error(self.ErrorWindow, "stop card stream first")
             return
 
-        self.single_acquire_array = Acquire.acquire(self.acquire_npts, inifile=self.inifile_acquire)
+        self.single_acquire_array = Acquire.acquire(
+            self.acquire_npts, inifile=self.inifile_acquire
+        )
         gc.collect()
 
-        npts_int, npts_float, level = pf.find_npts(self.single_acquire_array, level_percent=self.plotchecklevel)
+        npts_int, npts_float, level = pf.find_npts(
+            self.single_acquire_array, level_percent=self.plotchecklevel
+        )
         self._level = level
 
         self.le_ppifg.setText(str(npts_float))
         self.ppifg = npts_int
 
     def plot_check_ppifg(self):
-        arr = self.single_acquire_array[self.ppifg // 2:]
+        arr = self.single_acquire_array[self.ppifg // 2 :]
         if len(arr) > self.ppifg * 10:
-            arr = arr[:int(self.ppifg * 10)]
+            arr = arr[: int(self.ppifg * 10)]
         x = np.arange(len(arr))
         self.curve.setData(x=x, y=normalize(arr))
 
@@ -1681,11 +1926,14 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
 
         self.change_stream_buffer_size(buffer_size_bytes, mB=False)
 
-        print("applied points per interferogram, {N} interferograms per buffer".format(
-            N=buffer_size_bytes / (2 * self.ppifg * 2)))
+        print(
+            "applied points per interferogram, {N} interferograms per buffer".format(
+                N=buffer_size_bytes / (2 * self.ppifg * 2)
+            )
+        )
 
-        # given that it's only called by update_ppifg_from_le which already does this check,
-        # this check may be redundant
+        # given that it's only called by update_ppifg_from_le which already
+        # does this check, this check may be redundant
         if self.single_acquire_array is not None:
             pass
             # self.plot_check_ppifg()
@@ -1695,8 +1943,12 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
         self.le_ppifg.setText(str(self.ppifg))
         self.center_ind = self.ppifg
 
-        section = self.single_acquire_array[self.ppifg - self._nplot // 2:self.ppifg + self._nplot // 2]
-        ind = (abs(section - np.mean(section)) > self._level - np.mean(section)).nonzero()[0]
+        section = self.single_acquire_array[
+            self.ppifg - self._nplot // 2 : self.ppifg + self._nplot // 2
+        ]
+        ind = (
+            abs(section - np.mean(section)) > self._level - np.mean(section)
+        ).nonzero()[0]
         self._ind_old = None
         self._N_ind = len(ind)
 
@@ -1706,7 +1958,7 @@ class Gui(qt.QMainWindow, Ui_MainWindow, Stream):
             return
 
         filename, _ = qt.QFileDialog.getSaveFileName(self, "Save Data")
-        if filename == '':
+        if filename == "":
             return
 
         N_ifgs = self.data_storage_buffer.size // (self.ppifg * 2)
@@ -1750,7 +2002,7 @@ class UpdateDisplay(qtc.QThread):
             self.timer.stop()
         else:
             # print("hey there")
-            self.y[:] = np.frombuffer(self.parent.plotCopyOfWorkBuffer, 'h')
+            self.y[:] = np.frombuffer(self.parent.plotCopyOfWorkBuffer, "h")
             self.signal.progress.emit([self.x, self.y])
 
 
@@ -1764,16 +2016,23 @@ class SpectrumUpdate:
         self.ppifg = self.parent.ppifg
         self.N_ifgs = self.NPTS // self.ppifg
 
-        self.array = np.reshape(self.parent.plotCopyOfWorkBuffer, (self.N_ifgs, self.ppifg))
-        self.r, self.c = np.ogrid[:self.array.shape[0], :self.array.shape[1]]
+        self.array = np.reshape(
+            self.parent.plotCopyOfWorkBuffer, (self.N_ifgs, self.ppifg)
+        )
+        self.r, self.c = np.ogrid[: self.array.shape[0], : self.array.shape[1]]
         self.ind_maxes = np.zeros(self.array.shape[0])
         self.shifts = np.zeros(self.array.shape[0])
 
-        self.fft_input = pyfftw.empty_aligned(self.array.shape[1], dtype='complex128')
-        self.fft_output = pyfftw.empty_aligned(self.array.shape[1], dtype='complex128')
+        self.fft_input = pyfftw.empty_aligned(self.array.shape[1], dtype="complex128")
+        self.fft_output = pyfftw.empty_aligned(self.array.shape[1], dtype="complex128")
 
-        self.fft = pyfftw.FFTW(self.fft_input, self.fft_output, axes=[0], direction="FFTW_FORWARD",
-                               flags="FFTW_MEASURE")
+        self.fft = pyfftw.FFTW(
+            self.fft_input,
+            self.fft_output,
+            axes=[0],
+            direction="FFTW_FORWARD",
+            flags="FFTW_MEASURE",
+        )
 
     def run(self):
         # fill the array
