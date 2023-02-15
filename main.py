@@ -379,7 +379,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self._card_stream_progress_fcts = None
         self._card_stream_finished_fcts = None
-        # ______________________________________________________________________________________________________________
+        # _____________________________________________________________________
 
         # a signal to use inside the main Gui
         self.signal = Signal()
@@ -1173,14 +1173,17 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             x = x[: N * self.active_stream.ppifg]
             x.resize((N, self.active_stream.ppifg))
 
-            # __________________________________________________________________________________________________________
-            # below I just shift correct by overlapping the maxima of all the interferograms
-            # comment out this block if you just want to straight up average
+            # _________________________________________________________________
+            # below I just shift correct by overlapping the maxima of all the
+            # interferograms comment out this block if you just want to
+            # straight up average
             # ind_ref = np.argmax(x[0])  # maximum of first interferogram
-            # ind_diff = ind_ref - np.argmax(x, axis=1)  # maximum of first - maximum of all the rest
+            # ind_diff = ind_ref - np.argmax(
+            #     x, axis=1
+            # )  # maximum of first - maximum of all the rest
             # for n, i in enumerate(x):
             #     x[n] = np.roll(i, ind_diff[n])
-            # __________________________________________________________________________________________________________
+            # _________________________________________________________________
 
             center = self.active_stream.ppifg // 2
             if apod:
@@ -1189,9 +1192,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             x = np.mean(x, 0)
             ft = fft(x).__abs__()
 
-            # __________________________________________________________________________________________________________
+            # _________________________________________________________________
             # calculate the wavelength axis
-            # __________________________________________________________________________________________________________
+            # _________________________________________________________________
             Nyq_Freq = center * self.frep
             translation = (self.Nyquist_Window - 1) * Nyq_Freq
             if apod:
@@ -1205,9 +1208,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             else:
                 ft = ft[len(ft) // 2 :]  # positive frequency side
 
-            # __________________________________________________________________________________________________________
+            # _________________________________________________________________
             # update the plot
-            # __________________________________________________________________________________________________________
+            # _________________________________________________________________
             self.curve_ptscn.setData(wl, ft)
             return wl, ft
 
@@ -1335,16 +1338,18 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.line_scan_notrigger(x1, y1, x2, y2, step_um)
 
-    # __________________________________________________________________________________________________________________
+    # _________________________________________________________________________
     # Line scan without trigger
-    # __________________________________________________________________________________________________________________
+    # _________________________________________________________________________
     def line_scan_notrigger(self, x1, y1, x2, y2, step_um):
         if self.img_running.is_set():  # imaging already running
             if not self.calling_from_image.is_set():
                 self.stop_img.set()
-                # the line scan will return with the finished signal which will go into the imaging loop. At that point
-                # the stop_img flag will be detected and will send the program to img_stop_finished() where the finished
-                # signal will be disconnected
+                # the line scan will return with the finished signal which will
+                # go into the imaging loop. At that point the stop_img flag
+                # will be detected and will send the program to
+                # img_stop_finished() where the finished signal will be
+                # disconnected
                 if self.lscn_running.is_set():  # scan already running
                     self.stop_lscn.set()  # stop the line scan
                     return
@@ -1408,9 +1413,10 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         step_y = step_um * ry
         npts = np.floor(r / step_um)
 
-        # round off: if the step is less than 10 nm then it's just stage error. This caused me a lot of issues
-        # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
-        # nm ~ 0, the finished flag returned before it was connected
+        # round off: if the step is less than 10 nm then it's just stage error.
+        # This caused me a lot of issues because it would tell the stage to
+        # step, and in the next line connect the finished signal. but because
+        # 10 nm ~ 0, the finished flag returned before it was connected
         if abs(step_x * 1e3) < 10:
             step_x = 0.0
         if abs(step_y * 1e3) < 10:
@@ -1498,10 +1504,11 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self._n += 1
         self._lscn_step_one()
 
-    # __________________________________________________________________________________________________________________
+    # _________________________________________________________________________
     # Line scan with trigger
-    # __________________________________________________________________________________________________________________
-    # this function will be called from _check_if_at_start instead of _line_scan_notrigger_2
+    # _________________________________________________________________________
+    # this function will be called from _check_if_at_start instead of
+    # _line_scan_notrigger_2
     def _line_scan_withtrigger(self, x2, y2, step_um):
         if self.calling_from_image.is_set():
 
@@ -1528,9 +1535,10 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         step_y = step_um * ry
         npts = np.floor(r / step_um)
 
-        # round off: if the step is less than 10 nm then it's just stage error. This caused me a lot of issues
-        # because it would tell the stage to step, and in the next line connect the finished signal. but because 10
-        # nm ~ 0, the finished flag returned before it was connected
+        # round off: if the step is less than 10 nm then it's just stage error.
+        # This caused me a lot of issues because it would tell the stage to
+        # step, and in the next line connect the finished signal. but because
+        # 10 nm ~ 0, the finished flag returned before it was connected
         if abs(step_x * 1e3) < 10:
             step_x = 0.0
         if abs(step_y * 1e3) < 10:
@@ -1661,7 +1669,8 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         else:
             n_skip = ppifg // 400
 
-        # skip the first data point (due to the stage triggering where I don't want it to)
+        # skip the first data point (due to the stage triggering where I don't
+        # want it to)
         if self._n == 1:
             self._n += 1
             return  # skip
@@ -1731,9 +1740,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.stage_2.set_max_vel(1)
         self.signal.finished.emit(None)
 
-    # __________________________________________________________________________________________________________________
+    # _________________________________________________________________________
     # Image with or without trigger
-    # __________________________________________________________________________________________________________________
+    # _________________________________________________________________________
 
     def start_image_no_trigger(self):
         x1 = self.target_img_strt_um_1
@@ -1760,14 +1769,16 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         |                         |
         ** __________________ (x2, y2)
 
-        The idea here is to do repetitive line scans, with an update of the spectrum on the line scan tab,
-        and an update of the image on the imaging tab
+        The idea here is to do repetitive line scans, with an update of the
+        spectrum on the line scan tab, and an update of the image on the
+        imaging tab
         """
         if self.img_running.is_set():  # imaging already running
             self.stop_img.set()
-            # the line scan will return with the finished signal which will go into the imaging loop. At that point
-            # the stop_img flag will be detected and will send the program to img_stop_finished() where the finished
-            # signal will be disconnected
+            # the line scan will return with the finished signal which will go
+            # into the imaging loop. At that point the stop_img flag will be
+            # detected and will send the program to img_stop_finished() where
+            # the finished signal will be disconnected
             if self.lscn_running.is_set():  # scan already running
                 self.stop_lscn.set()  # stop the line scan
                 return
