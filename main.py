@@ -20,14 +20,15 @@ from scipy.integrate import simps
 
 # %% global variables
 edge_limit_buffer_mm = 0.0  # 1 um
-COM1 = "COM4"
-COM2 = "COM6"
+COM1 = "COM8"  # will change whenever usb's reconnect to computer
+COM2 = "COM9"
 active_correct_line_scan = True
-databackup_path = r"D:\Microscope\databackup/"
+databackup_path = r"D:\\Microscope\\databackup/"
 
 extra_steps_linescan = 10
 trigger_stage_1_only = True
 apod = 0
+
 
 # %% function defs
 def fft(x, axis=None):
