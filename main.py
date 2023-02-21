@@ -309,16 +309,17 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.curve_lscn = pw.create_curve()
         self.plot_lscn.plotwidget.addItem(self.curve_lscn)
 
-        self.stage_1 = MotorInterface(apt.KDC101(COM1))
-        self.stage_2 = MotorInterface(apt.KDC101(COM2))
-        self.stage_1.T0_um = float(np.loadtxt("T0_um_1.txt"))
-        self.stage_2.T0_um = float(np.loadtxt("T0_um_2.txt"))
-        self.stage_1.set_max_vel(1)
-        self.stage_2.set_max_vel(1)
-        self.pos_um_1 = None
-        self.pos_um_2 = None
-        self.update_lcd_pos_1(self.stage_1.pos_um)
-        self.update_lcd_pos_2(self.stage_2.pos_um)
+        # NO STAGES
+        # self.stage_1 = MotorInterface(apt.KDC101(COM1))
+        # self.stage_2 = MotorInterface(apt.KDC101(COM2))
+        # self.stage_1.T0_um = float(np.loadtxt("T0_um_1.txt"))
+        # self.stage_2.T0_um = float(np.loadtxt("T0_um_2.txt"))
+        # self.stage_1.set_max_vel(1)
+        # self.stage_2.set_max_vel(1)
+        # self.pos_um_1 = None
+        # self.pos_um_2 = None
+        # self.update_lcd_pos_1(self.stage_1.pos_um)
+        # self.update_lcd_pos_2(self.stage_2.pos_um)
 
         self.motor_moving_1 = threading.Event()
         self.motor_moving_2 = threading.Event()
