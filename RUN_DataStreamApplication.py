@@ -22,7 +22,6 @@ import PyQt5.QtWidgets as qt
 import PlotWidgets as pw
 import PyQt5.QtGui as qtg
 import ProcessingFunctions as pf
-import pyfftw
 import DataStreamApplication as dsa
 import Acquire
 from GuiDesigner_TWO_CARDS import Ui_MainWindow

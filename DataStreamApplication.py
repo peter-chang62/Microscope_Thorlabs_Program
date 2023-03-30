@@ -24,7 +24,6 @@ from GuiDesigner import Ui_MainWindow
 import PlotWidgets as pw
 import PyQt5.QtGui as qtg
 import ProcessingFunctions as pf
-import pyfftw
 from datetime import datetime
 
 from GageConstants import (
@@ -2007,47 +2006,47 @@ class UpdateDisplay(qtc.QThread):
 
 
 # TODO push forward on this so we can look at the spectrum in real time
-class SpectrumUpdate:
-    def __init__(self, parent):
-        parent: Gui
-        self.parent = parent
+# class SpectrumUpdate:
+#     def __init__(self, parent):
+#         parent: Gui
+#         self.parent = parent
 
-        self.NPTS = len(self.parent.plotCopyOfWorkBuffer)
-        self.ppifg = self.parent.ppifg
-        self.N_ifgs = self.NPTS // self.ppifg
+#         self.NPTS = len(self.parent.plotCopyOfWorkBuffer)
+#         self.ppifg = self.parent.ppifg
+#         self.N_ifgs = self.NPTS // self.ppifg
 
-        self.array = np.reshape(
-            self.parent.plotCopyOfWorkBuffer, (self.N_ifgs, self.ppifg)
-        )
-        self.r, self.c = np.ogrid[: self.array.shape[0], : self.array.shape[1]]
-        self.ind_maxes = np.zeros(self.array.shape[0])
-        self.shifts = np.zeros(self.array.shape[0])
+#         self.array = np.reshape(
+#             self.parent.plotCopyOfWorkBuffer, (self.N_ifgs, self.ppifg)
+#         )
+#         self.r, self.c = np.ogrid[: self.array.shape[0], : self.array.shape[1]]
+#         self.ind_maxes = np.zeros(self.array.shape[0])
+#         self.shifts = np.zeros(self.array.shape[0])
 
-        self.fft_input = pyfftw.empty_aligned(self.array.shape[1], dtype="complex128")
-        self.fft_output = pyfftw.empty_aligned(self.array.shape[1], dtype="complex128")
+#         self.fft_input = pyfftw.empty_aligned(self.array.shape[1], dtype="complex128")
+#         self.fft_output = pyfftw.empty_aligned(self.array.shape[1], dtype="complex128")
 
-        self.fft = pyfftw.FFTW(
-            self.fft_input,
-            self.fft_output,
-            axes=[0],
-            direction="FFTW_FORWARD",
-            flags="FFTW_MEASURE",
-        )
+#         self.fft = pyfftw.FFTW(
+#             self.fft_input,
+#             self.fft_output,
+#             axes=[0],
+#             direction="FFTW_FORWARD",
+#             flags="FFTW_MEASURE",
+#         )
 
-    def run(self):
-        # fill the array
-        self.array.resize(self.NPTS)
-        self.array[:] = self.parent.plotCopyOfWorkBuffer[:]
-        self.array.resize((self.N_ifgs, self.ppifg))
+#     def run(self):
+#         # fill the array
+#         self.array.resize(self.NPTS)
+#         self.array[:] = self.parent.plotCopyOfWorkBuffer[:]
+#         self.array.resize((self.N_ifgs, self.ppifg))
 
-        # shift correction
-        self.ind_maxes[:] = np.argmax(self.array, axis=1)
-        self.shifts = self.ind_maxes - self.ind_maxes[0]
-        self.array[:] = self.array[self.r, self.c - self.shifts[:, np.newaxis]]
+#         # shift correction
+#         self.ind_maxes[:] = np.argmax(self.array, axis=1)
+#         self.shifts = self.ind_maxes - self.ind_maxes[0]
+#         self.array[:] = self.array[self.r, self.c - self.shifts[:, np.newaxis]]
 
-        # compute the fft
-        self.fft_input = np.mean(self.array, axis=0)
-        self.fft()
+#         # compute the fft
+#         self.fft_input = np.mean(self.array, axis=0)
+#         self.fft()
 
 
 # # not fast enough :(
