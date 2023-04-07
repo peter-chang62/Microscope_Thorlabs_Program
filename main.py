@@ -382,7 +382,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.connect()
 
-        # temporary storage variables __________________________________________________________________________________
+        # temporary storage variables _________________________________________
         self._x2 = None
         self._y2 = None
 
