@@ -1625,7 +1625,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         # T = self.active_stream.acquire_npts * 1e-9
         # self._vel_mm_s = min([step_um * 1e-3, 1e-3 / T])
-        self._vel_mm_s = step_um * 1e-3 * 4  # two pixels per second
+        self._vel_mm_s = step_um * 1e-3 * 8  # two pixels per second
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
@@ -1933,7 +1933,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             return
 
         filename, _ = qt.QFileDialog.getSaveFileName(
-            caption=f"Save Data for Card {self.card_index}"
+            caption=f"Save Data for Card 1"
         )
         if filename == "":
             return
@@ -1948,7 +1948,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             return
 
         filename, _ = qt.QFileDialog.getSaveFileName(
-            caption=f"Save Data for Card {self.card_index}"
+            caption=f"Save Data for Card 2"
         )
         if filename == "":
             return
