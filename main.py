@@ -1619,7 +1619,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         # T = self.active_stream.acquire_npts * 1e-9
         # self._vel_mm_s = min([step_um * 1e-3, 1e-3 / T])
-        self._vel_mm_s = step_um * 1e-3 * 4  # two pixels per second
+        self._vel_mm_s = step_um * 1e-3 * 8  # two pixels per second
 
         if abs(step_x) > 0:
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
@@ -1690,6 +1690,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # skip all odd loop counts
         if self._n % 2 == 0:
             x = np.frombuffer(X, "<h")
+            pass
         else:
             self._n += 1
             return  # skip
@@ -1699,6 +1700,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             self._h += 1
             return  # skip
 
+        # ------------------ analysis -----------------------------------------
         x = x[np.argmax(x[:ppifg]) :][center:]
         N = len(x) // self.active_stream.ppifg
         x = x[: N * self.active_stream.ppifg]
@@ -1713,6 +1715,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self._FT[self._h] = ft
         self.curve_lscn.setData(self._WL[::n_skip], ft[::n_skip])
         print(self._h, "out of", len(self._FT))
+        # ---------------------------------------------------------------------
 
         if self._h == len(self._FT) - 1 or self.stop_lscn.is_set():
             print("attempted to terminate stream")
