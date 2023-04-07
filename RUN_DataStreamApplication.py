@@ -24,7 +24,7 @@ import PyQt5.QtGui as qtg
 import ProcessingFunctions as pf
 import DataStreamApplication as dsa
 import Acquire
-from GuiDesigner_TWO_CARDS import Ui_MainWindow
+from UI.PY.GuiDesigner_TWO_CARDS_MICROSCOPE import Ui_MainWindow
 
 extTrigger = False
 if extTrigger:
@@ -37,7 +37,7 @@ def isnumeric(s):
     s: str
     if s.isnumeric():
         return True
-    elif s.startswith('-') or s.startswith('+'):
+    elif s.startswith("-") or s.startswith("+"):
         return s[1:].isnumeric()
     else:
         return False
@@ -51,11 +51,14 @@ class GuiWindow(qt.QMainWindow, Ui_MainWindow):
 
 
 class StreamWithGui(dsa.Stream):
-    def __init__(self, gui,
-                 index=1,
-                 inifile_stream=dsa.inifile_default,
-                 inifile_acquire='include/Acquire.ini',
-                 shared_info=None):
+    def __init__(
+        self,
+        gui,
+        index=1,
+        inifile_stream=dsa.inifile_default,
+        inifile_acquire="include/Acquire.ini",
+        shared_info=None,
+    ):
         dsa.Stream.__init__(self, inifile_stream)
         gui: Ui_MainWindow
         shared_info: SharedInfo
@@ -66,7 +69,7 @@ class StreamWithGui(dsa.Stream):
         """I want to be able to specify the instance, so the Gui class cannot be inherited"""
 
         # conditional gui attributes to inherit ----------------------------------------------------------------------
-        assert ((index == 1) or (index == 2)), f"index needs to be 1 or 2 but got {index}"
+        assert (index == 1) or (index == 2), f"index needs to be 1 or 2 but got {index}"
         if index == 1:
             self.le_ifgplot_xmin = self.gui.le_ifgplot_xmin
             self.le_ifgplot_xmax = self.gui.le_ifgplot_xmax
@@ -118,9 +121,13 @@ class StreamWithGui(dsa.Stream):
 
         # ---------------------------------------------------------------------------
 
-        self.plotwindow = pw.PlotWindow(self.le_ifgplot_xmin, self.le_ifgplot_xmax,
-                                        self.le_ifgplot_ymin, self.le_ifgplot_ymax,
-                                        self.gv_ifgplot)
+        self.plotwindow = pw.PlotWindow(
+            self.le_ifgplot_xmin,
+            self.le_ifgplot_xmax,
+            self.le_ifgplot_ymin,
+            self.le_ifgplot_ymax,
+            self.gv_ifgplot,
+        )
         self.curve = pw.create_curve()
         self.plotwindow.plotwidget.addItem(self.curve)
         self.general_connects()
@@ -158,11 +165,11 @@ class StreamWithGui(dsa.Stream):
         # set the cell widget for the table to QLineEdits so that we can employ a QIntValidator
         config = ConfigParser()
         config.read(self.inifile_stream)
-        level = config['Trigger1']['Level']
-        plotchecklevel = config['PlotCheckLevel']['plotchecklevel']
-        segmentsize = config['Acquisition']['SegmentSize']
-        extclk = config['Acquisition']['extclk']
-        ext_trigger = config['Trigger1']['source']
+        level = config["Trigger1"]["Level"]
+        plotchecklevel = config["PlotCheckLevel"]["plotchecklevel"]
+        segmentsize = config["Acquisition"]["SegmentSize"]
+        extclk = config["Acquisition"]["extclk"]
+        ext_trigger = config["Trigger1"]["source"]
         if ext_trigger == -1:
             ext_trigger = 1
         else:
@@ -172,7 +179,7 @@ class StreamWithGui(dsa.Stream):
         self.tableWidget.item(2, 0).setText(str(segmentsize))
         self.tableWidget.item(3, 0).setText(str(extclk))
         self.tableWidget.item(4, 0).setText(str(ext_trigger))
-        self.saved_table_widget_item_text = 'hello world'
+        self.saved_table_widget_item_text = "hello world"
 
         self.wait_time = 100
 
@@ -181,17 +188,17 @@ class StreamWithGui(dsa.Stream):
 
         # if self.card_index is 1, set the data back up path to the data back up for card 1 folder
         if self.card_index == 1:
-            self.databackup_path = 'DataBackup/card1/'
+            self.databackup_path = "DataBackup/card1/"
 
         # otherwise, if card_index is two, set it to the data backup folder for card 2
         elif self.card_index == 2:
-            self.databackup_path = 'DataBackup/card2/'
+            self.databackup_path = "DataBackup/card2/"
 
     @property
     def plotchecklevel(self):
         config = ConfigParser()
         config.read(self.inifile_stream)
-        plotchecklevel = config['PlotCheckLevel']['plotchecklevel']
+        plotchecklevel = config["PlotCheckLevel"]["plotchecklevel"]
         return float(plotchecklevel)
 
     def save_table_item(self, row, col):
@@ -216,14 +223,18 @@ class StreamWithGui(dsa.Stream):
     def set_new_plotchecklevel(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             dsa.raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         plotchecklevel = int(self.tableWidget.item(row, col).text())
 
         if plotchecklevel <= 0:
             dsa.raise_error(self.ErrorWindow, "trigger level needs to be >= 0 ")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         dsa.setNewPlotCheckLevel(self.inifile_stream, plotchecklevel)
@@ -231,14 +242,18 @@ class StreamWithGui(dsa.Stream):
     def set_new_trigger_level(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             dsa.raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         level_percent = int(self.tableWidget.item(row, col).text())
 
         if level_percent < 0:
             dsa.raise_error(self.ErrorWindow, "trigger level needs to be >= 0 ")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         dsa.setNewTriggerLevel(self.inifile_stream, level_percent)
@@ -247,14 +262,18 @@ class StreamWithGui(dsa.Stream):
     def setSegmentSize(self, row, col):
         if not isnumeric(self.tableWidget.item(row, col).text()):
             dsa.raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         segmentsize = int(self.tableWidget.item(row, col).text())
 
         if (segmentsize == 0) or (segmentsize < -1):
             dsa.raise_error(self.ErrorWindow, "segment size must be >= 1 or else be -1")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         dsa.setSegmentSize(self.inifile_stream, segmentsize)
@@ -262,14 +281,18 @@ class StreamWithGui(dsa.Stream):
     def setExtClk(self, row, col):
         if not isnumeric(self.tableWidget.item(row, col).text()):
             dsa.raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         extclk = int(self.tableWidget.item(row, col).text())
 
         if not any([extclk == 0, extclk == 1]):
             dsa.raise_error(self.ErrorWindow, "extclk must be 0 or 1")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         dsa.setExtClk(self.inifile_stream, extclk)
@@ -278,17 +301,23 @@ class StreamWithGui(dsa.Stream):
     def setTriggerSource(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
             dsa.raise_error(self.ErrorWindow, "input must be an integer")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
         ext_trigger = int(self.tableWidget.item(row, col).text())
 
         if not any([ext_trigger == 0, ext_trigger == 1]):
             dsa.raise_error(self.ErrorWindow, "external trigger must be 0 or 1")
-            self.tableWidget.item(row, col).setText(str(self.saved_table_widget_item_text))
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
             return
 
-        dsa.setExtTrigger(self.inifile_stream, ext_trigger)  # only change trigger source for streaming
+        dsa.setExtTrigger(
+            self.inifile_stream, ext_trigger
+        )  # only change trigger source for streaming
 
     def plot(self):
         if self.single_acquire_array is None:
@@ -322,7 +351,9 @@ class StreamWithGui(dsa.Stream):
             return
 
         self.system_info = PyGage.GetSystemInfo(self.handle)
-        if not isinstance(self.system_info, dict):  # if it's not a dict, it's an int indicating an error
+        if not isinstance(
+            self.system_info, dict
+        ):  # if it's not a dict, it's an int indicating an error
             error_string = PyGage.GetErrorString(self.system_info)
             print("Error: ", error_string)
             PyGage.FreeSystem(self.handle)
@@ -373,11 +404,14 @@ class StreamWithGui(dsa.Stream):
         if self.streaming_buffer_size_to_set is not None:
             self.app["BufferSize"] = self.streaming_buffer_size_to_set
 
-    def stream_data(self, *args,
-                    connect_to_progress_fcts=None,
-                    connect_to_finish_fcts=None,
-                    live_update_plot=True,
-                    fcts_call_before_stream=None):
+    def stream_data(
+        self,
+        *args,
+        connect_to_progress_fcts=None,
+        connect_to_finish_fcts=None,
+        live_update_plot=True,
+        fcts_call_before_stream=None,
+    ):
         """
         This overrides the stream_data method in Stream(). It adds the option to save data by running
         CardStreamSaveData instead of CardStream. It is otherwise the same as stream_data in Stream.
@@ -415,56 +449,75 @@ class StreamWithGui(dsa.Stream):
         # get total amount of data we expect to receive in bytes, negative if an error occurred
         total_samples = PyGage.GetStreamTotalDataSizeInBytes(self.handle)
 
-        if total_samples < 0 and total_samples != acq_config['SegmentSize']:
+        if total_samples < 0 and total_samples != acq_config["SegmentSize"]:
             print("Error: ", PyGage.GetErrorString(total_samples))
             PyGage.FreeSystem(self.handle)
             raise SystemExit
 
         # convert from bytes -> samples and print it to screen
         if total_samples != -1:
-            total_samples = total_samples // self.system_info['SampleSize']
+            total_samples = total_samples // self.system_info["SampleSize"]
             print("total samples is: ", total_samples)
 
         if self.chkbx_save_data.isChecked():
             self.calc_data_storage_buffer_size()
             pass
 
-        """We first initialize and start the card stream thread. The card stream thread initializes two buffers and 
-        handles the data transfer to the buffers. Then we send the command to the Gage Card to start the data capture. 
+        """
+        We first initialize and start the card stream thread. The card stream
+        thread initializes two buffers and handles the data transfer to the
+        buffers. Then we send the command to the Gage Card to start the data
+        capture.
 
-        After that, we initialize and start the thread that tracks the progress of the data stream. This thread emits 
-        signals that are used to plot data on the GUI. """
+        After that, we initialize and start the thread that tracks the progress
+        of the data stream. This thread emits signals that are used to plot
+        data on the GUI.
+        """
 
         # annoys me that I don't know if this is necessary but whatever
         del self.card_stream
         gc.collect()
         if self.chkbx_save_data.isChecked():
-            self.card_stream = dsa.CardStreamSaveData(self.handle, self.card_index,
-                                                      self.system_info['SampleSize'],
-                                                      self.app,
-                                                      self.stream_started_event,
-                                                      self.ready_for_stream_event,
-                                                      self.stream_aborted_event,
-                                                      self.stream_error_event,
-                                                      self.g_segmentCounted,
-                                                      self.g_cardTotalData, self)
+            self.card_stream = dsa.CardStreamSaveData(
+                self.handle,
+                self.card_index,
+                self.system_info["SampleSize"],
+                self.app,
+                self.stream_started_event,
+                self.ready_for_stream_event,
+                self.stream_aborted_event,
+                self.stream_error_event,
+                self.g_segmentCounted,
+                self.g_cardTotalData,
+                self,
+            )
         else:
-            self.card_stream = dsa.CardStream(self.handle, self.card_index,
-                                              self.system_info['SampleSize'],
-                                              self.app,
-                                              self.stream_started_event,
-                                              self.ready_for_stream_event,
-                                              self.stream_aborted_event,
-                                              self.stream_error_event,
-                                              self.g_segmentCounted,
-                                              self.g_cardTotalData, self)
+            self.card_stream = dsa.CardStream(
+                self.handle,
+                self.card_index,
+                self.system_info["SampleSize"],
+                self.app,
+                self.stream_started_event,
+                self.ready_for_stream_event,
+                self.stream_aborted_event,
+                self.stream_error_event,
+                self.g_segmentCounted,
+                self.g_cardTotalData,
+                self,
+            )
             if connect_to_progress_fcts is not None:
                 assert isinstance(connect_to_progress_fcts, list)
-                [self.card_stream.signal.progress.connect(i) for i in connect_to_progress_fcts]
+                [
+                    self.card_stream.signal.progress.connect(i)
+                    for i in connect_to_progress_fcts
+                ]
 
             if connect_to_finish_fcts is not None:
                 assert isinstance(connect_to_finish_fcts, list)
-                [self.card_stream.signal.finished.connect(i) for i in connect_to_finish_fcts]
+                [
+                    self.card_stream.signal.finished.connect(i)
+                    for i in connect_to_finish_fcts
+                ]
 
         self.connect_card_stream_update()
         self._a1 = self.card_stream._a1
@@ -528,7 +581,7 @@ class StreamWithGui(dsa.Stream):
             self.update_storage_buffer_size()
 
         # I'm expecting this function to be called by stream_data after self.app has been initialized
-        buffersize = self.app['BufferSize']
+        buffersize = self.app["BufferSize"]
         N = int(np.floor(self.data_storage_size / buffersize))
         self.N_ifgs_to_fill_buffer = N
 
@@ -540,17 +593,22 @@ class StreamWithGui(dsa.Stream):
 
         if self.streaming_buffer_size_to_set is not None:
             if num < self.streaming_buffer_size_to_set:
-                dsa.raise_error(self.ErrorWindow, "needs to at least be the streaming buffer size. "
-                                                  "I am setting this instead to " +
-                                str(self.streaming_buffer_size_to_set / 1e6))
+                dsa.raise_error(
+                    self.ErrorWindow,
+                    "needs to at least be the streaming buffer size. "
+                    "I am setting this instead to "
+                    + str(self.streaming_buffer_size_to_set / 1e6),
+                )
                 num = self.streaming_buffer_size_to_set
                 self.le_buffer_size_MB.setText(str(num / 1e6))
 
         elif self.app is not None:
             if num < self.app["BufferSize"]:
-                dsa.raise_error(self.ErrorWindow, "needs to at least be the streaming buffer size. "
-                                                  "I am setting this instead to " +
-                                str(self.app["BufferSize"] / 1e6))
+                dsa.raise_error(
+                    self.ErrorWindow,
+                    "needs to at least be the streaming buffer size. "
+                    "I am setting this instead to " + str(self.app["BufferSize"] / 1e6),
+                )
                 num = self.app["BufferSize"]
                 self.le_buffer_size_MB.setText(str(num / 1e6))
 
@@ -615,7 +673,9 @@ class StreamWithGui(dsa.Stream):
         self.btn_start_stream.clicked.connect(self.stream_data)
         self.btn_stop_stream.clicked.connect(self.terminate)
 
-        self.le_npts_post_trigger.editingFinished.connect(self.update_acquire_post_trigger_npts_from_le)
+        self.le_npts_post_trigger.editingFinished.connect(
+            self.update_acquire_post_trigger_npts_from_le
+        )
         self.btn_single_acquire.clicked.connect(self.acquire)
 
         self.btn_apply_ppifg.clicked.connect(self.apply_ppifg)
@@ -653,24 +713,38 @@ class StreamWithGui(dsa.Stream):
 
             if not self.gui.rbtn_dont_correct.isChecked():
                 # if this instance runs card 2 and the walking check is referenced for card 1
-                if np.all([self.gui.rbtn_walkon_1.isChecked(), self.card_index == 2,
-                           self.shared_info.center_ind is not None]):
+                if np.all(
+                    [
+                        self.gui.rbtn_walkon_1.isChecked(),
+                        self.card_index == 2,
+                        self.shared_info.center_ind is not None,
+                    ]
+                ):
                     self.center_ind = self.shared_info.center_ind
 
                 # if this instance runs card 1 and the walking check is referenced for card 2
-                elif np.all([self.gui.rbtn_walkon_2.isChecked(), self.card_index == 1,
-                             self.shared_info.center_ind is not None]):
+                elif np.all(
+                    [
+                        self.gui.rbtn_walkon_2.isChecked(),
+                        self.card_index == 1,
+                        self.shared_info.center_ind is not None,
+                    ]
+                ):
                     self.center_ind = self.shared_info.center_ind
 
                 else:
                     center_ind_chnged_by_loop = True
 
                     # section of y that will be plotted to screen
-                    section = y[self.center_ind - n_plot // 2:self.center_ind + n_plot // 2]
+                    section = y[
+                        self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2
+                    ]
 
                     # the indices of values in section that are above the level threshold indicating the presence of an
                     # interferogram
-                    ind = (abs(section - np.mean(section)) > self._level - np.mean(section)).nonzero()[0]
+                    ind = (
+                        abs(section - np.mean(section)) > self._level - np.mean(section)
+                    ).nonzero()[0]
 
                     # if the number of indices is less than half the original value (set when we know there was an
                     # interferogram in there)
@@ -712,12 +786,16 @@ class StreamWithGui(dsa.Stream):
 
                 # if not walking independently and we got this far, then this card stream instance must
                 # be referenced for center_ind by the other card_stream instance
-                if (not self.gui.rbtn_walk_independently.isChecked()) and center_ind_chnged_by_loop:
+                if (
+                    not self.gui.rbtn_walk_independently.isChecked()
+                ) and center_ind_chnged_by_loop:
                     self.shared_info.center_ind = self.center_ind
                     # print('setting shared center_ind')
 
-            self.curve.setData(x=x[self.center_ind - n_plot // 2:self.center_ind + n_plot // 2],
-                               y=y[self.center_ind - n_plot // 2:self.center_ind + n_plot // 2])
+            self.curve.setData(
+                x=x[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
+                y=y[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
+            )
 
     def change_stream_buffer_size(self, num, mB=False):
         if mB:
@@ -751,8 +829,9 @@ class StreamWithGui(dsa.Stream):
             return
 
         if self.card_index == 1:
-            self.single_acquire_array = Acquire.acquire(self.acquire_npts,
-                                                        inifile=self.inifile_acquire)
+            self.single_acquire_array = Acquire.acquire(
+                self.acquire_npts, inifile=self.inifile_acquire
+            )
         else:
             # call initialize twice, to get the second card in the registry
             handle1 = Acquire.initialize()
@@ -760,13 +839,16 @@ class StreamWithGui(dsa.Stream):
             PyGage.FreeSystem(handle1)
 
             # handle2 will be freed by Acquire.acquire
-            self.single_acquire_array = Acquire.acquire(self.acquire_npts, handle=handle2,
-                                                        inifile=self.inifile_acquire)
+            self.single_acquire_array = Acquire.acquire(
+                self.acquire_npts, handle=handle2, inifile=self.inifile_acquire
+            )
 
         gc.collect()
 
         if set_ppifg:
-            npts_int, npts_float, level = pf.find_npts(self.single_acquire_array, level_percent=self.plotchecklevel)
+            npts_int, npts_float, level = pf.find_npts(
+                self.single_acquire_array, level_percent=self.plotchecklevel
+            )
             self._level = level
 
             self.le_ppifg.setText(str(npts_float))
@@ -788,8 +870,11 @@ class StreamWithGui(dsa.Stream):
 
         self.change_stream_buffer_size(buffer_size_bytes, mB=False)
 
-        print("applied points per interferogram, {N} interferograms per buffer".format(
-            N=buffer_size_bytes / (2 * self.ppifg * 2)))
+        print(
+            "applied points per interferogram, {N} interferograms per buffer".format(
+                N=buffer_size_bytes / (2 * self.ppifg * 2)
+            )
+        )
 
         self.adjusted_buffer_to_ppifg = True
 
@@ -797,8 +882,12 @@ class StreamWithGui(dsa.Stream):
         self.center_ind = self.ppifg
 
         if prep_walk_correction:
-            section = self.single_acquire_array[self.ppifg - self._nplot // 2:self.ppifg + self._nplot // 2]
-            ind = (abs(section - np.mean(section)) > self._level - np.mean(section)).nonzero()[0]
+            section = self.single_acquire_array[
+                self.ppifg - self._nplot // 2 : self.ppifg + self._nplot // 2
+            ]
+            ind = (
+                abs(section - np.mean(section)) > self._level - np.mean(section)
+            ).nonzero()[0]
             self._ind_old = None
             self._N_ind = len(ind)
 
@@ -807,8 +896,10 @@ class StreamWithGui(dsa.Stream):
             dsa.raise_error(self.ErrorWindow, "no data saved to storage buffer yet")
             return
 
-        filename, _ = qt.QFileDialog.getSaveFileName(caption=f"Save Data for Card {self.card_index}")
-        if filename == '':
+        filename, _ = qt.QFileDialog.getSaveFileName(
+            caption=f"Save Data for Card {self.card_index}"
+        )
+        if filename == "":
             return
 
         N_ifgs = self.data_storage_buffer.size // (self.ppifg * 2)
@@ -820,7 +911,7 @@ class StreamWithGui(dsa.Stream):
 
         # saving as .npy file
         filename += ".npy"
-        data = np.frombuffer(self.data_storage_buffer, '<h')
+        data = np.frombuffer(self.data_storage_buffer, "<h")
         data.resize((N_ifgs, self.ppifg))
         np.save(filename, data)
 
@@ -841,19 +932,35 @@ class GuiTwoCards(qt.QMainWindow, Ui_MainWindow):
         # if you want to use the Two Cards Gui, but only running one of the cards, comment out the appropriate
         # stream1 or stream2 lines below
         if extTrigger:
-            self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_exttrigger.ini',
-                                         inifile_acquire='include/Acquire_CARD1.ini',
-                                         shared_info=self.shared_info)
-            self.stream2 = StreamWithGui(self, index=2, inifile_stream='include/Stream2Analysis_exttrigger.ini',
-                                         inifile_acquire='include/Acquire_CARD2.ini',
-                                         shared_info=self.shared_info)
+            self.stream1 = StreamWithGui(
+                self,
+                index=1,
+                inifile_stream="include/Stream2Analysis_exttrigger.ini",
+                inifile_acquire="include/Acquire_CARD1.ini",
+                shared_info=self.shared_info,
+            )
+            self.stream2 = StreamWithGui(
+                self,
+                index=2,
+                inifile_stream="include/Stream2Analysis_exttrigger.ini",
+                inifile_acquire="include/Acquire_CARD2.ini",
+                shared_info=self.shared_info,
+            )
         else:
-            self.stream1 = StreamWithGui(self, index=1, inifile_stream='include/Stream2Analysis_CARD1.ini',
-                                         inifile_acquire='include/Acquire_CARD1.ini',
-                                         shared_info=self.shared_info)
-            self.stream2 = StreamWithGui(self, index=2, inifile_stream='include/Stream2Analysis_CARD2.ini',
-                                         inifile_acquire='include/Acquire_CARD2.ini',
-                                         shared_info=self.shared_info)
+            self.stream1 = StreamWithGui(
+                self,
+                index=1,
+                inifile_stream="include/Stream2Analysis_CARD1.ini",
+                inifile_acquire="include/Acquire_CARD1.ini",
+                shared_info=self.shared_info,
+            )
+            self.stream2 = StreamWithGui(
+                self,
+                index=2,
+                inifile_stream="include/Stream2Analysis_CARD2.ini",
+                inifile_acquire="include/Acquire_CARD2.ini",
+                shared_info=self.shared_info,
+            )
 
         self.show()
 

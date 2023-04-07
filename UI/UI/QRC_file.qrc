@@ -1,0 +1,20 @@
+<RCC>
+  <qresource prefix="Save">
+    <file>save_icon.png</file>
+  </qresource>
+  <qresource prefix="Save2">
+    <file>save_icon_2.png</file>
+  </qresource>
+  <qresource prefix="Save_A">
+    <file>save_icon_A.png</file>
+  </qresource>
+  <qresource prefix="Save2_A">
+    <file>save_icon_2_A.png</file>
+  </qresource>
+  <qresource prefix="Save_L">
+    <file>save_icon_L.png</file>
+  </qresource>
+  <qresource prefix="Save_I">
+    <file>save_icon_I.png</file>
+  </qresource>
+</RCC>

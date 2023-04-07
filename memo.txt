@@ -1,0 +1,9 @@
+Flow of this Project: 
+
+1. DataStreamApplication.py was used to stream 1 GaGe card
+
+2. RUN_DataStreamApplication.py extended the application to run 2 GaGe cards.
+This version of the code is what was used for the shocktube experiments. 
+
+3. main.py further extended the application so that it now uses two GaGe cards
+and two Thorlabs translation stages to run a microscopy system.

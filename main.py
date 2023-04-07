@@ -4,7 +4,7 @@ import time
 import matplotlib.pyplot as plt
 import scipy.constants as sc
 import PyQt5.QtWidgets as qt
-from Error_Window import Ui_Form
+from UI.PY.Error_Window import Ui_Form
 from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
 import MotorClassFromAptProtocolConnor as apt
@@ -382,7 +382,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         self.connect()
 
-        # temporary storage variables __________________________________________________________________________________
+        # temporary storage variables _________________________________________
         self._x2 = None
         self._y2 = None
 
@@ -611,6 +611,12 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.btn_step_right_2.clicked.connect(self.step_right_2)
         self.btn_lscn_start.clicked.connect(self.start_line_scan_notrigger)
         self.btn_img_start.clicked.connect(self.start_image_no_trigger)
+
+        # save buttons
+        self.actionSave_A.triggered.connect(self.save_acquire_1)
+        self.actionSave2_A.triggered.connect(self.save_acquire_2)
+        self.actionSave_L.triggered.connect(self.save_line_scan)
+        self.actionSave_I.triggered.connect(self.save_image)
 
     def connect_update_motor_1(self):
         self.update_motor_thread_1: UpdateMotorThread
@@ -1923,6 +1929,74 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     def update_image(self, arr):
         arr = simps(arr, axis=-1)
         self.plot_image.plotwidget.plot_image(arr)
+
+    def save_acquire_1(self):
+        if self.stream1.single_acquire_array is None:
+            raise_error(self.ErrorWindow, "no acquisition call has been made yet")
+            return
+
+        filename, _ = qt.QFileDialog.getSaveFileName(
+            caption=f"Save Data for Card 1"
+        )
+        if filename == "":
+            return
+
+        # saving as .npy file
+        filename += ".npy"
+        np.save(filename, self.active_stream.single_acquire_array)
+
+    def save_acquire_2(self):
+        if self.stream2.single_acquire_array is None:
+            raise_error(self.ErrorWindow, "no acquisition call has been made yet")
+            return
+
+        filename, _ = qt.QFileDialog.getSaveFileName(
+            caption=f"Save Data for Card 2"
+        )
+        if filename == "":
+            return
+
+        # saving as .npy file
+        filename += ".npy"
+        np.save(filename, self.active_stream.single_acquire_array)
+
+    def save_line_scan(self):
+        if self._FT is None:
+            raise_error(self.ErrorWindow, "no linescan taken yet")
+            return
+
+        filename, _ = qt.QFileDialog.getSaveFileName(caption=f"Save linescan")
+        if filename == "":
+            return
+
+        # saving as .npy file
+        filename += ".npy"
+        np.save(filename, self._FT)
+
+    def save_image(self):
+        if self._IMG is None:
+            raise_error(self.ErrorWindow, "no image taken yet")
+            return
+
+        filename, _ = qt.QFileDialog.getSaveFileName(caption=f"Save image")
+        if filename == "":
+            return
+
+        for r in range(self._IMG.shape[0]):
+            row = self._IMG[r]
+            if not np.any(row):
+                break
+        img = self._IMG[:r]  # r is the first row of all zeroes, or the end
+
+        for c in range(self._IMG.shape[1]):
+            col = self._IMG[:, c]
+            if not np.any(col):
+                break
+        img = img[:, :c]  # c is the first column of all zeroes, or the end
+
+        # saving as .npy file
+        filename += ".npy"
+        np.save(filename, img)
 
 
 # %% runnable classes

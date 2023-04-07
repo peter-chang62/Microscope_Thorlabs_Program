@@ -20,7 +20,7 @@ import GageSupport as gs
 import numpy as np
 import PyQt5.QtCore as qtc
 import PyQt5.QtWidgets as qt
-from GuiDesigner import Ui_MainWindow
+from UI.PY.GuiDesigner import Ui_MainWindow
 import PlotWidgets as pw
 import PyQt5.QtGui as qtg
 import ProcessingFunctions as pf
@@ -48,7 +48,7 @@ from GageErrors import (
     CS_STM_COMPLETED,
 )
 import array
-from Error_Window import Ui_Form
+from UI.PY.Error_Window import Ui_Form
 import Acquire
 
 # default parameters
