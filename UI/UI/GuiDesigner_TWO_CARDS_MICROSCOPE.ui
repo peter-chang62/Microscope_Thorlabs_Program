@@ -3380,6 +3380,10 @@
    </attribute>
    <addaction name="actionSave"/>
    <addaction name="actionSave2"/>
+   <addaction name="actionSave_A"/>
+   <addaction name="actionSave2_A"/>
+   <addaction name="actionSave_L"/>
+   <addaction name="actionSave_I"/>
   </widget>
   <action name="actionSave">
    <property name="icon">
@@ -3397,6 +3401,42 @@
    </property>
    <property name="text">
     <string>Save2</string>
+   </property>
+  </action>
+  <action name="actionSave_A">
+   <property name="icon">
+    <iconset resource="QRC_file.qrc">
+     <normaloff>:/Save_A/save_icon_A.png</normaloff>:/Save_A/save_icon_A.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save_A</string>
+   </property>
+  </action>
+  <action name="actionSave2_A">
+   <property name="icon">
+    <iconset resource="QRC_file.qrc">
+     <normaloff>:/Save2_A/save_icon_2_A.png</normaloff>:/Save2_A/save_icon_2_A.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save2_A</string>
+   </property>
+  </action>
+  <action name="actionSave_L">
+   <property name="icon">
+    <iconset resource="QRC_file.qrc">
+     <normaloff>:/Save_L/save_icon_L.png</normaloff>:/Save_L/save_icon_L.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save_L</string>
+   </property>
+  </action>
+  <action name="actionSave_I">
+   <property name="icon">
+    <iconset resource="QRC_file.qrc">
+     <normaloff>:/Save_I/save_icon_I.png</normaloff>:/Save_I/save_icon_I.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save_I</string>
    </property>
   </action>
  </widget>

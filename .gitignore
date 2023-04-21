@@ -5,3 +5,9 @@ __pycache__/
 
 ~$allowed_dfrep_3.3_to_3.5_um.xlsx
 /fig/
+
+.DS_Store
+
+.vscode/
+
+.spyproject/
