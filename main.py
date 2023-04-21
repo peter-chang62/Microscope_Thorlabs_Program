@@ -25,7 +25,7 @@ COM2 = "COM9"
 active_correct_line_scan = True
 databackup_path = r"D:\\Microscope\\databackup/"
 
-extra_steps_linescan = 10
+extra_steps_linescan = 15
 # The imaging with trigger is acquired by repeated linescans. Originally, I had
 # it set to scan the stage that would minimize the number of linescans.
 # However, this sometimes resulted in me having to constantly switch the
@@ -1549,6 +1549,13 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         x1 = self.stage_1.pos_um
         y1 = self.stage_2.pos_um
 
+        tau_p = self.active_stream.acquire_npts / 1e9
+        v_p = 10
+        factor = 1 + v_p * tau_p
+        step_um /= factor
+
+        self._vel_mm_s = step_um * 1e-3 * v_p  # 12 pixels per second
+
         # calculate the step size in x and step size in y
         dx = x2 - x1
         dy = y2 - y1
@@ -1623,11 +1630,9 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.lscn_running.set()
         self.btn_lscn_start.setText("stop scan")
 
-        # T = self.active_stream.acquire_npts * 1e-9
-        # self._vel_mm_s = min([step_um * 1e-3, 1e-3 / T])
-        self._vel_mm_s = step_um * 1e-3 * 8  # two pixels per second
-
         if abs(step_x) > 0:
+            print(f"using {step_x} instead of {step_x * factor} for linescan")
+
             self.stage_1.step_um = step_x  # set trigger interval for stage 1
             self.step_left_1(
                 step_um=step_x
@@ -1636,6 +1641,8 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
                 self._line_scan_withtrigger_2
             )
         elif abs(step_y) > 0:
+            print(f"using {step_y} instead of {step_y * factor} for linescan")
+
             self.stage_2.step_um = step_y  # set trigger interval for stage 2
             self.step_left_2(
                 step_um=step_y
@@ -1935,9 +1942,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "no acquisition call has been made yet")
             return
 
-        filename, _ = qt.QFileDialog.getSaveFileName(
-            caption=f"Save Data for Card 1"
-        )
+        filename, _ = qt.QFileDialog.getSaveFileName(caption=f"Save Data for Card 1")
         if filename == "":
             return
 
@@ -1950,9 +1955,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             raise_error(self.ErrorWindow, "no acquisition call has been made yet")
             return
 
-        filename, _ = qt.QFileDialog.getSaveFileName(
-            caption=f"Save Data for Card 2"
-        )
+        filename, _ = qt.QFileDialog.getSaveFileName(caption=f"Save Data for Card 2")
         if filename == "":
             return
 
@@ -1982,6 +1985,8 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         if filename == "":
             return
 
+        # TODO: this truncates the dimensions by 1 if there were no zeros, fix
+        #   that
         for r in range(self._IMG.shape[0]):
             row = self._IMG[r]
             if not np.any(row):

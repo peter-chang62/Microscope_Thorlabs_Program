@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import scipy.constants as sc
 import PyQt5.QtWidgets as qt
-from Error_Window import Ui_Form
+from UI.PY.Error_Window import Ui_Form
 from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
 import MotorClassFromAptProtocolConnor as apt
@@ -10,8 +10,8 @@ import numpy as np
 import mkl_fft
 
 edge_limit_buffer_mm = 0.0  # 1 um
-COM1 = "COM8"
-COM2 = "COM9"
+COM2 = "COM8"
+COM1 = "COM9"
 
 
 def fft(x, axis=None):
@@ -164,9 +164,9 @@ class MotorInterface:
         self.motor.set_max_vel(m_s)
 
 
-m = MotorInterface(apt.KDC101(COM1))
-m.set_max_vel(.5)
-pos = [10.5e3, 11.2e3]
+m = MotorInterface(apt.KDC101(COM2))
+m.set_max_vel(1)
+pos = [8057, 8198]
 b = 0
 while True:
     m.pos_um = pos[b]
