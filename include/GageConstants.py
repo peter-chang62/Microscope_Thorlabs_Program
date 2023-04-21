@@ -754,7 +754,7 @@ EXFN_DISK_STREAM_ERRORS       = 17 | EXFX_DISK_STREAM_MASK  # DiskStream: Return
 EXFN_DISK_STREAM_TIMING_FLAG  = 18 | EXFX_DISK_STREAM_MASK  # DiskStream: Flag to enable timing statistics
 EXFN_DISK_STREAM_TIMING_STATS = 19 | EXFX_DISK_STREAM_MASK  # DiskStream: Return the timing statistics, if available
 
-EXFN_STREAM_INIT      = 20  # Streaming config and get_handle
+EXFN_STREAM_INIT      = 20  # Streaming config and initialize
 EXFN_STREAM_CLEANUP   = 21  # Streaming cleanup resources
 EXFN_STREAM_START     = 22  # Start acquisiton in stream mode
 EXFN_STREAM_GETSTATUS = 23  # Streaming Get status

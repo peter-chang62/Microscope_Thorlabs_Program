@@ -108,6 +108,8 @@ def LoadAcquisitionConfiguration(handle, iniFile):
                 acq['TriggerDelay'] = int(value)
             elif key == 'extclk':
                 acq['ExternalClock'] = int(value)
+            elif key == 'extclocksampleskip':
+                acq['ExtClockSampleSkip'] = int(value)
             elif key == 'timestampclock':
                 if value == 'fixed':
                     acq['TimeStampConfig'] |= TIMESTAMP_MCLK
@@ -519,7 +521,7 @@ def Initialize():
         return handle
         
 
-def stream_data():
+def main():
     handle = Initialize()
     if handle < 0:
         # get error string
@@ -553,5 +555,5 @@ def stream_data():
     
  
 if __name__ == '__main__':
-    stream_data()
+    main()
 """
