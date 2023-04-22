@@ -33,6 +33,17 @@ else:
     ActiveSaveData = False
 
 
+class QIntValidator(qtg.QValidator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def validate(self, s, pos):
+        if s.isnumeric():
+            return (self.Acceptable, s, pos)
+        else:
+            return (self.Invalid, s, pos)
+
+
 def isnumeric(s):
     s: str
     if s.isnumeric():
@@ -136,9 +147,10 @@ class StreamWithGui(dsa.Stream):
 
         # these line edits can only be set to integer or double
         self.le_buffer_size_MB.setValidator(qtg.QDoubleValidator())
-        self.le_ppifg.setValidator(qtg.QIntValidator())
-        self.le_npts_to_plot.setValidator(qtg.QIntValidator())
-        self.le_npts_post_trigger.setValidator(qtg.QIntValidator())
+        self.le_ppifg.setValidator(QIntValidator())
+        self.le_npts_to_plot.setValidator(QIntValidator())
+        self.le_npts_post_trigger.setValidator(QIntValidator())
+        self.le_npts_post_trigger.setValidator(QIntValidator())
 
         self.progressBar.setValue(0)
         self.progressBar.setRange(0, 100)
@@ -804,6 +816,7 @@ class StreamWithGui(dsa.Stream):
             self.streaming_buffer_size_to_set = int(num)
 
     def update_acquire_post_trigger_npts_from_le(self):
+        print("I'm updating post trigger points")
         num = int(self.le_npts_post_trigger.text())
         if num < 20000:
             dsa.raise_error(self.ErrorWindow, "npts has to at least be 20,000")

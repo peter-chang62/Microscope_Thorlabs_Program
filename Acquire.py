@@ -1,35 +1,48 @@
 from __future__ import print_function
-import sys
-import time
-import ProcessingFunctions as pf
-
-sys.path.append("include")
-import matplotlib.pyplot as plt
 from builtins import int
+import platform
 import sys
 from datetime import datetime
 import GageSupport as gs
 import GageConstants as gc
 import numpy as np
-import PyGage3_64 as PyGage
+from configparser import ConfigParser
 
 
-def convert_adc_to_volts(x, stHeader, scale_factor, offset):
-    return (((stHeader['SampleOffset'] - x) / stHeader['SampleRes']) * scale_factor) + offset
+# Code used to determine if python is version 2.x or 3.x
+# and if os is 32 bits or 64 bits.  If you know they
+# python version and os you can skip all this and just
+# import the appropriate version
+
+# returns is_64bits for python
+# (i.e. 32 bit python running on 64 bit windows should return false)
+
+is_64_bits = sys.maxsize > 2**32
+
+if is_64_bits:
+    if sys.version_info >= (3, 0):
+        import PyGage3_64 as PyGage
+    else:
+        import PyGage2_64 as PyGage
+else:
+    if sys.version_info > (3, 0):
+        import PyGage3_32 as PyGage
+    else:
+        import PyGage2_32 as PyGage
 
 
-def normalize(vec):
-    return vec / np.max(abs(vec))
+def edit_inifile(inifile, segment_size):
+    config = ConfigParser()
+    config.read(inifile)
+    config["Acquisition"]["Depth"] = str(segment_size)  # depth
+    config["Acquisition"]["SegmentSize"] = str(segment_size)  # segmentsize
+    config["Application"]["TransferLength"] = str(segment_size)  # transfer length
+    with open(inifile, "w") as configfile:
+        config.write(configfile)
 
 
-def configure_system(handle, filename, segment_size=None):
+def configure_system(handle, filename):
     acq, sts = gs.LoadAcquisitionConfiguration(handle, filename)
-
-    # added this
-    if segment_size is not None:
-        if isinstance(acq, dict):
-            acq['Depth'] = segment_size
-            acq['SegmentSize'] = segment_size
 
     if isinstance(acq, dict) and acq:
         status = PyGage.SetAcquisitionConfig(handle, acq)
@@ -41,20 +54,21 @@ def configure_system(handle, filename, segment_size=None):
     if sts == gs.INI_FILE_MISSING:
         print("Missing ini file, using defaults")
     elif sts == gs.PARAMETERS_MISSING:
-        print("One or more acquisition parameters missing, using defaults for missing values")
+        print(
+            "One or more acquisition parameters missing, using defaults for missing values"
+        )
 
     system_info = PyGage.GetSystemInfo(handle)
     acq = PyGage.GetAcquisitionConfig(
-        handle)  # check for error - copy to GageAcquire.py
+        handle
+    )  # check for error - copy to GageAcquire.py
 
-    channel_increment = gs.CalculateChannelIndexIncrement(acq['Mode'],
-                                                          system_info[
-                                                              'ChannelCount'],
-                                                          system_info[
-                                                              'BoardCount'])
+    channel_increment = gs.CalculateChannelIndexIncrement(
+        acq["Mode"], system_info["ChannelCount"], system_info["BoardCount"]
+    )
 
     missing_parameters = False
-    for i in range(1, system_info['ChannelCount'] + 1, channel_increment):
+    for i in range(1, system_info["ChannelCount"] + 1, channel_increment):
         chan, sts = gs.LoadChannelConfiguration(handle, i, filename)
         if isinstance(chan, dict) and chan:
             status = PyGage.SetChannelConfig(handle, i, chan)
@@ -67,7 +81,9 @@ def configure_system(handle, filename, segment_size=None):
             missing_parameters = True
 
     if missing_parameters:
-        print("One or more channel parameters missing, using defaults for missing values")
+        print(
+            "One or more channel parameters missing, using defaults for missing values"
+        )
 
     missing_parameters = False
     # in this example we're only using 1 trigger source, if we use
@@ -88,7 +104,9 @@ def configure_system(handle, filename, segment_size=None):
             missing_parameters = True
 
     if missing_parameters:
-        print("One or more trigger parameters missing, using defaults for missing values")
+        print(
+            "One or more trigger parameters missing, using defaults for missing values"
+        )
 
     status = PyGage.Commit(handle)
     return status
@@ -108,174 +126,117 @@ def get_data(handle, mode, app, system_info):
     if status < 0:
         return status
 
+    capture_time = 0
     status = PyGage.GetStatus(handle)
     while status != gc.ACQ_STATUS_READY:
         status = PyGage.GetStatus(handle)
+        # if we've triggered, get the time of day
+        # this is just to demonstrate how to use the time stamp
+        # in the SIG file header
+        if status == gc.ACQ_STATUS_TRIGGERED:
+            capture_time = datetime.now().time()
+
+    # just in case we missed the trigger time, we'll use the capture time
+    if capture_time == 0:
+        capture_time = datetime.now().time()
+
+    channel_increment = gs.CalculateChannelIndexIncrement(
+        mode, system_info["ChannelCount"], system_info["BoardCount"]
+    )
 
     acq = PyGage.GetAcquisitionConfig(handle)
+    # These fields are common for all the channels
 
     # Validate the start address and the length. This is especially
     # necessary if trigger delay is being used.
-    min_start_address = acq['TriggerDelay'] + acq['Depth'] - acq['SegmentSize']
-    if app['StartPosition'] < min_start_address:
-        print("\nInvalid Start Address was changed from {0} to {1}".format(app['StartPosition'], min_start_address))
-        app['StartPosition'] = min_start_address
 
-    max_length = acq['TriggerDelay'] + acq['Depth'] - min_start_address
-    if app['TransferLength'] > max_length:
-        print("\nInvalid Transfer Length was changed from {0} to {1}".format(app['TransferLength'], max_length))
-        app['TransferLength'] = max_length
+    min_start_address = acq["TriggerDelay"] + acq["Depth"] - acq["SegmentSize"]
+    if app["StartPosition"] < min_start_address:
+        print(
+            "\nInvalid Start Address was changed from {0} to {1}".format(
+                app["StartPosition"], min_start_address
+            )
+        )
+        app["StartPosition"] = min_start_address
 
-    stHeader = {}
-    if acq['ExternalClock']:
-        stHeader['SampleRate'] = acq['SampleRate'] / acq['ExtClockSampleSkip'] * 1000
-    else:
-        stHeader['SampleRate'] = acq['SampleRate']
+    max_length = acq["TriggerDelay"] + acq["Depth"] - min_start_address
+    if app["TransferLength"] > max_length:
+        print(
+            "\nInvalid Transfer Length was changed from {0} to {1}".format(
+                app["TransferLength"], max_length
+            )
+        )
+        app["TransferLength"] = max_length
 
-    stHeader['Start'] = app['StartPosition']
-    stHeader['Length'] = app['TransferLength']
-    stHeader['SampleSize'] = acq['SampleSize']
-    stHeader['SampleOffset'] = acq['SampleOffset']
-    stHeader['SampleRes'] = acq['SampleResolution']
-    stHeader['SegmentNumber'] = 1  # this example only does single capture
-    stHeader['SampleBits'] = acq['SampleBits']
+    for i in range(1, system_info["ChannelCount"] + 1, channel_increment):
+        buffer = PyGage.TransferData(
+            handle, i, 0, 1, app["StartPosition"], app["TransferLength"]
+        )
+        if isinstance(buffer, int):  # an error occurred
+            print("Error transferring channel ", i)
+            return buffer
 
-    if app['SaveFileFormat'] == gs.TYPE_SIG:
-        stHeader['SegmentCount'] = 1
-    else:
-        stHeader['SegmentCount'] = acq['SegmentCount']
+        # if call succeeded (buffer is not an integer) then
+        # buffer[0] holds the actual data, buffer[1] holds
+        # the actual start and buffer[2] holds the actual length
 
-    # we are only streaming data from 1 channel:
-    # so i = 1
-    buffer = PyGage.TransferData(handle, 1, 0, 1, app['StartPosition'], app['TransferLength'])
-    if isinstance(buffer, int):  # an error occurred
-        print("Error transferring channel ", 1)
-        return buffer
+        # TransferData may change the actual length of the buffer
+        # (i.e. if the requested transfer length was too large), so we can
+        # change it in the header to be the length of the buffer or
+        # we can use the actual length (buffer[2])
 
-    # if call succeeded (buffer is not an integer) then
-    # buffer[0] holds the actual data, buffer[1] holds
-    # the actual start and buffer[2] holds the actual length
-
-    chan = PyGage.GetChannelConfig(handle, 1)
-    stHeader['InputRange'] = chan['InputRange']
-    stHeader['DcOffset'] = chan['DcOffset']
-
-    scale_factor = stHeader['InputRange'] / 2000
-    offset = stHeader['DcOffset'] / 1000
-
-    # buffer[0] is a numpy array
-    # I don't know why in their code they converted the array to list and then used map,
-    # it's a heck of a lot longer to do it that way.
-    data = convert_adc_to_volts(buffer[0], stHeader, scale_factor, offset)
-
-    return status, data
+    return status, buffer[0]
 
 
 def acquire(segment_size, handle=None, inifile=None):
-    try:
-        # initialization common amongst all sample programs:
-        # ____________________________________________________________________________________________________
-        if inifile is None:
-            inifile = 'include/Acquire.ini'
-
-        # if handle is None, then get the handle for the first card available
-        if handle is None:
-            handle = initialize()
-            if handle < 0:
-                # get error string
-                error_string = PyGage.GetErrorString(handle)
-                print("Error: ", error_string)
-                raise SystemExit
-
-        # in case handle was supplied, make sure handle is an int here
-        # if it was supplied and doesn't refer to a card, the error will be caught later
-        assert isinstance(handle, int)
-
-        system_info = PyGage.GetSystemInfo(handle)
-        if not isinstance(system_info,
-                          dict):  # if it's not a dict, it's an int indicating an error
-            print("Error: ", PyGage.GetErrorString(system_info))
-            PyGage.FreeSystem(handle)
-            raise SystemExit
-
-        print("\nBoard Name: ", system_info["BoardName"])
-
-        status = configure_system(handle, inifile, segment_size)
-        if status < 0:
+    if inifile is None:
+        inifile = "Acquire.ini"
+    if handle is None:
+        handle = initialize()
+        if handle < 0:
             # get error string
+            error_string = PyGage.GetErrorString(handle)
+            print("Error: ", error_string)
+            raise SystemExit
+    assert isinstance(handle, int)
+    assert isinstance(segment_size, int)
+
+    edit_inifile(inifile, segment_size)
+
+    system_info = PyGage.GetSystemInfo(handle)
+    if not isinstance(
+        system_info, dict
+    ):  # if it's not a dict, it's an int indicating an error
+        print("Error: ", PyGage.GetErrorString(system_info))
+        PyGage.FreeSystem(handle)
+        raise SystemExit
+
+    print("\nBoard Name: ", system_info["BoardName"])
+
+    status = configure_system(handle, inifile)
+    if status < 0:
+        # get error string
+        error_string = PyGage.GetErrorString(status)
+        print("Error: ", error_string)
+    else:
+        acq_config = PyGage.GetAcquisitionConfig(handle)
+        app, sts = gs.LoadApplicationConfiguration(inifile)
+
+        # we don't need to check for gs.INI_FILE_MISSING because if there's no ini file
+        # we've already reported when calling configure_system
+        if sts == gs.PARAMETERS_MISSING:
+            print(
+                "One or more application parameters missing, using defaults for missing values"
+            )
+
+        status, data = get_data(handle, acq_config["Mode"], app, system_info)
+        if status < 0:
             error_string = PyGage.GetErrorString(status)
             print("Error: ", error_string)
-        else:
-            acq_config = PyGage.GetAcquisitionConfig(handle)
-            app, sts = gs.LoadApplicationConfiguration(inifile)
-
-            if segment_size is not None:
-                app['TransferLength'] = segment_size
-
-            # we don't need to check for gs.INI_FILE_MISSING because if there's no ini file
-            # we've already reported when calling configure_system
-            if sts == gs.PARAMETERS_MISSING:
-                print(
-                    "One or more application parameters missing, using defaults for missing values")
-
-            # _________________________________________________________________________________________________
-            # initialization done
-
-            status, data = get_data(handle, acq_config['Mode'], app,
-                                    system_info)
-            if isinstance(status, int):
-                if status < 0:
-                    error_string = PyGage.GetErrorString(status)
-                    print("Error: ", error_string)
-
-                # these error checks regard the saving of the data
-
-                # comment out ____________________________________________________________________
-            #     elif status == 0:  # could not open o write to the data file
-            #         print("Error opening or writing ", filename)
-            #     else:
-            #         if app['SaveFileFormat'] == gs.TYPE_SIG:
-            #             print("\nAcquisition completed.\nAll channels saved as "
-            #                   "GageScope SIG files in the current directory\n")
-            #         elif app['SaveFileFormat'] == gs.TYPE_BIN:
-            #             print("\nAcquisition completed.\nAll channels saved "
-            #                   "as binary files in the current directory\n")
-            #         else:
-            #             print("\nAcquisition completed.\nAll channels saved "
-            #                   "as ASCII data files in the current directory\n")
-            # else:  # not an int, we can't open or write the file so we returned the filename
-            #     print("Error opening or writing ", status)
-            # ________________________________________________________________________________________
-
-            # free the handle and return the data data
-            PyGage.FreeSystem(handle)
-            return data
-    except KeyboardInterrupt:
-        print("Exiting program")
-
-    PyGage.FreeSystem(handle)
+        PyGage.FreeSystem(handle)
+        data = np.frombuffer(data, "<h")
+        return data
 
 
-# %% testing
-n = 17860
-
-
-def test(ppifg, plot=True, Nplot=10):
-    d = acquire(30000000)
-    N = 30000000 // ppifg
-    d = d[:N * ppifg]
-    d = d[ppifg // 2:-ppifg // 2]
-    d = d.reshape((N - 1, ppifg))
-
-    if plot:
-        plt.figure()
-        [plt.plot(d[i, ppifg // 2 - 100: ppifg // 2 + 100]) for i in range(Nplot)]
-
-    return d
-
-# %% ___________________________________________________________________________________________________________________
-# # It can't even configure the system to use certain segment sizes. pretty sure same issue in GaGe's provided sample
-# # code!
-# segmentsize = 74162 * 1000
-# # segmentsize = 103944 * 1000
-# x = acquire(segmentsize, None, 'include/Acquire_CARD1.ini')
+if __name__ == "__main__":
+    data = acquire(400000000, handle=None, inifile=None)

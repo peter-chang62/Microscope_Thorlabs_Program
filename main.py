@@ -1,16 +1,11 @@
 # %% package imports
 import threading
-import time
-import matplotlib.pyplot as plt
 import scipy.constants as sc
 import PyQt5.QtWidgets as qt
 from UI.PY.Error_Window import Ui_Form
 from scipy.constants import c as c_mks
 import PyQt5.QtCore as qtc
-import MotorClassFromAptProtocolConnor as apt
-import ProcessingFunctions as pf
 import numpy as np
-import sys
 import RUN_DataStreamApplication as rdsa
 import mkl_fft
 import PlotWidgets as pw

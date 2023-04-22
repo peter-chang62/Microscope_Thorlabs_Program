@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\fastdaq\Documents\Github\Microscope_Thorlabs_Program\UI\UI\GuiDesigner.ui'
+# Form implementation generated from reading ui file 'C:\Users\Diddams\Documents\Python Scripts\Microscope_Thorlabs_Program\UI\UI\GuiDesigner.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -262,7 +262,7 @@ class Ui_MainWindow(object):
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
         self.actionSave = QtWidgets.QAction(MainWindow)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("C:\\Users\\fastdaq\\Documents\\Github\\Microscope_Thorlabs_Program\\UI\\UI\\save_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap("C:\\Users\\Diddams\\Documents\\Python Scripts\\Microscope_Thorlabs_Program\\UI\\UI\\save_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.actionSave.setIcon(icon)
         self.actionSave.setObjectName("actionSave")
         self.toolBar.addAction(self.actionSave)
