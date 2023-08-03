@@ -10,8 +10,8 @@ import numpy as np
 import mkl_fft
 
 edge_limit_buffer_mm = 0.0  # 1 um
-COM2 = "COM8"
-COM1 = "COM9"
+COM1 = "COM8"
+COM2 = "COM9"
 
 
 def fft(x, axis=None):
@@ -164,9 +164,9 @@ class MotorInterface:
         self.motor.set_max_vel(m_s)
 
 
-m = MotorInterface(apt.KDC101(COM2))
+m = MotorInterface(apt.KDC101(COM1))
 m.set_max_vel(1)
-pos = [8057, 8198]
+pos = [5300, 6921]
 b = 0
 while True:
     m.pos_um = pos[b]

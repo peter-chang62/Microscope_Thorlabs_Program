@@ -25,7 +25,7 @@ COM2 = "COM9"
 active_correct_line_scan = True
 databackup_path = r"D:\\Microscope\\databackup/"
 
-extra_steps_linescan = 15
+extra_steps_linescan = 100
 # The imaging with trigger is acquired by repeated linescans. Originally, I had
 # it set to scan the stage that would minimize the number of linescans.
 # However, this sometimes resulted in me having to constantly switch the
@@ -1550,7 +1550,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         y1 = self.stage_2.pos_um
 
         tau_p = self.active_stream.acquire_npts / 1e9
-        v_p = 10
+        v_p = .85 / tau_p
         factor = 1 + v_p * tau_p
         step_um /= factor
 
@@ -1618,7 +1618,8 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # 2)
         # this sets the sample size of each segment (not byte size!)
         # segmentsize = self.active_stream.acquire_npts
-        segmentsize = self.active_stream.acquire_npts * 2
+        # segmentsize = self.active_stream.acquire_npts * 2
+        segmentsize = self.active_stream.acquire_npts
         dsa.setExtTrigger(self.active_stream.inifile_stream, 1)
         dsa.setSegmentSize(self.active_stream.inifile_stream, segmentsize)
 
@@ -1701,12 +1702,14 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             return  # skip
 
         # skip all odd loop counts
-        if self._n % 2 == 0:
-            x = np.frombuffer(X, "<h")
-            pass
-        else:
-            self._n += 1
-            return  # skip
+        # if self._n % 2 == 0:
+        #     x = np.frombuffer(X, "<h")
+        #     pass
+        # else:
+        #     self._n += 1
+        #     return  # skip
+
+        x = np.frombuffer(X, "<h")
 
         if self._h >= len(self._FT):
             self._n += 1
@@ -1726,7 +1729,8 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
             ft = ft[::-1]  # negative frequency side
 
         self._FT[self._h] = ft
-        self.curve_lscn.setData(self._WL[::n_skip], ft[::n_skip])
+        # if self._n % 2 == 0:
+        #     self.curve_lscn.setData(self._WL[::n_skip], ft[::n_skip])
         print(self._h, "out of", len(self._FT))
         # ---------------------------------------------------------------------
 
