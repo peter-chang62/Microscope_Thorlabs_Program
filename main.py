@@ -1164,7 +1164,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         # acquire
         try:
             self.active_stream.acquire(set_ppifg=False)
-        except:
+        except Exception:
             raise_error(self.ErrorWindow, "FAILED TO ACQUIRE :(")
             return  # exit
 
