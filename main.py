@@ -233,23 +233,12 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         rdsa.Ui_MainWindow.__init__(self)
         self.setupUi(self)
 
-        self.shared_info = rdsa.SharedInfo()
-
         self.stream1 = StreamWithGui(
             self,
             index=1,
             inifile_stream="include/Stream2Analysis_CARD1.ini",
             inifile_acquire="include/Acquire_CARD1.ini",
-            shared_info=self.shared_info,
         )
-        self.stream2 = StreamWithGui(
-            self,
-            index=2,
-            inifile_stream="include/Stream2Analysis_CARD2.ini",
-            inifile_acquire="include/Acquire_CARD2.ini",
-            shared_info=self.shared_info,
-        )
-
         self.show()
 
         self.ErrorWindow = ErrorWindow()
@@ -552,8 +541,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         self.target_lscn_end_um_2 = x
 
     def connect(self):
-        self.radbtn_card1.clicked.connect(self.select_card_1)
-        self.radbtn_card2.clicked.connect(self.select_card_2)
         self.radbtn_trigon_1.clicked.connect(self.update_trigon_1)
         self.radbtn_trigon_2.clicked.connect(self.update_trigon_2)
 
@@ -614,7 +601,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
 
         # save buttons
         self.actionSave_A.triggered.connect(self.save_acquire_1)
-        self.actionSave2_A.triggered.connect(self.save_acquire_2)
         self.actionSave_L.triggered.connect(self.save_line_scan)
         self.actionSave_I.triggered.connect(self.save_image)
 
@@ -635,18 +621,6 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
     def end_of_move_motor_2(self):
         self.btn_move_to_pos_2.setText("move to position")
         self.btn_home_stage_2.setText("home stage")
-
-    def select_card_1(self, flag):
-        if flag:
-            self._card_index = 1
-            self.active_stream = self.stream1
-            print("selecting card 1")
-
-    def select_card_2(self, flag):
-        if flag:
-            self._card_index = 2
-            self.active_stream = self.stream2
-            print("selecting card 2")
 
     def setNyquistWindow(self):
         nyq_window = int(self.le_nyq_window.text())
@@ -1550,7 +1524,7 @@ class GuiTwoCards(qt.QMainWindow, rdsa.Ui_MainWindow):
         y1 = self.stage_2.pos_um
 
         tau_p = self.active_stream.acquire_npts / 1e9
-        v_p = .85 / tau_p
+        v_p = 0.85 / tau_p
         factor = 1 + v_p * tau_p
         step_um /= factor
 

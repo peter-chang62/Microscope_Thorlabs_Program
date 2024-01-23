@@ -26,12 +26,6 @@ import DataStreamApplication as dsa
 import Acquire
 from UI.PY.GuiDesigner_TWO_CARDS_MICROSCOPE import Ui_MainWindow
 
-extTrigger = False
-if extTrigger:
-    ActiveSaveData = True
-else:
-    ActiveSaveData = False
-
 
 def isnumeric(s):
     s: str
@@ -57,26 +51,17 @@ class StreamWithGui(dsa.Stream):
         index=1,
         inifile_stream=dsa.inifile_default,
         inifile_acquire="include/Acquire.ini",
-        shared_info=None,
     ):
         dsa.Stream.__init__(self, inifile_stream)
         gui: Ui_MainWindow
-        shared_info: SharedInfo
         self.gui = gui
-        self.shared_info = shared_info
         self.inifile_acquire = inifile_acquire
 
         """I want to be able to specify the instance, so the Gui class cannot be inherited"""
 
-        # conditional gui attributes to inherit ----------------------------------------------------------------------
-        assert (index == 1) or (index == 2), f"index needs to be 1 or 2 but got {index}"
+        # conditional gui attributes to inherit -------------------------------
+        assert index == 1
         if index == 1:
-            self.le_ifgplot_xmin = self.gui.le_ifgplot_xmin
-            self.le_ifgplot_xmax = self.gui.le_ifgplot_xmax
-            self.le_ifgplot_ymin = self.gui.le_ifgplot_ymin
-            self.le_ifgplot_ymax = self.gui.le_ifgplot_ymax
-            self.gv_ifgplot = self.gui.gv_ifgplot
-
             self.le_ppifg = self.gui.le_ppifg
             self.progressBar = self.gui.progressBar
             self.txtbws_stream_rate = self.gui.txtbws_stream_rate
@@ -91,45 +76,30 @@ class StreamWithGui(dsa.Stream):
             self.btn_apply_ppifg = self.gui.btn_apply_ppifg
             self.actionSave = self.gui.actionSave
 
-        else:
-            self.le_ifgplot_xmin = self.gui.le_ifgplot_xmin_2
-            self.le_ifgplot_xmax = self.gui.le_ifgplot_xmax_2
-            self.le_ifgplot_ymin = self.gui.le_ifgplot_ymin_2
-            self.le_ifgplot_ymax = self.gui.le_ifgplot_ymax_2
-            self.gv_ifgplot = self.gui.gv_ifgplot_2
-
-            self.le_ppifg = self.gui.le_ppifg_2
-            self.progressBar = self.gui.progressBar_2
-            self.txtbws_stream_rate = self.gui.txtbws_stream_rate_2
-
-            self.btn_start_stream = self.gui.btn_start_stream_2
-            self.btn_stop_stream = self.gui.btn_stop_stream_2
-            self.btn_single_acquire = self.gui.btn_single_acquire_2
-
-            self.chkbx_save_data = self.gui.chkbx_save_data_2
-            self.tableWidget = self.gui.tableWidget_2
-            self.btn_plot = self.gui.btn_plot_2
-            self.btn_apply_ppifg = self.gui.btn_apply_ppifg_2
-            self.actionSave = self.gui.actionSave2
-
-        # all the other gui attributes to inherit -----------------------------------
+        # all the other gui attributes to inherit -----------------------------
         self.le_npts_post_trigger = self.gui.le_npts_post_trigger
         self.le_buffer_size_MB = self.gui.le_buffer_size_MB
         self.le_npts_to_plot = self.gui.le_npts_to_plot
-        self.btn_start_both_streams = self.gui.btn_start_stream_3
-        self.btn_stop_both_streams = self.gui.btn_stop_stream_3
+        # ---------------------------------------------------------------------
 
-        # ---------------------------------------------------------------------------
-
-        self.plotwindow = pw.PlotWindow(
-            self.le_ifgplot_xmin,
-            self.le_ifgplot_xmax,
-            self.le_ifgplot_ymin,
-            self.le_ifgplot_ymax,
-            self.gv_ifgplot,
+        self.plotwindow_ch1 = pw.PlotWindow(
+            self.gui.le_ifgplot_xmin,
+            self.gui.le_ifgplot_xmax,
+            self.gui.le_ifgplot_ymin,
+            self.gui.le_ifgplot_ymax,
+            self.gui.gv_ifgplot,
         )
-        self.curve = pw.create_curve()
-        self.plotwindow.plotwidget.addItem(self.curve)
+        self.plotwindow_ch2 = pw.PlotWindow(
+            self.gui.le_ifgplot_xmin_2,
+            self.gui.le_ifgplot_xmax_2,
+            self.gui.le_ifgplot_ymin_2,
+            self.gui.le_ifgplot_ymax_2,
+            self.gui.gv_ifgplot_2,
+        )
+        self.curve_ch1 = pw.create_curve()
+        self.curve_ch2 = pw.create_curve()
+        self.plotwindow_ch1.plotwidget.addItem(self.curve_ch1)
+        self.plotwindow_ch2.plotwidget.addItem(self.curve_ch2)
         self.general_connects()
 
         self.contPlotUpdate = None
@@ -174,25 +144,22 @@ class StreamWithGui(dsa.Stream):
             ext_trigger = 1
         else:
             ext_trigger = 0
+        mode = config["Acquisition"]["mode"].lower()
         self.tableWidget.item(0, 0).setText(str(level))
         self.tableWidget.item(1, 0).setText(str(plotchecklevel))
         self.tableWidget.item(2, 0).setText(str(segmentsize))
         self.tableWidget.item(3, 0).setText(str(extclk))
         self.tableWidget.item(4, 0).setText(str(ext_trigger))
+        self.tableWidget.item(5, 0).setText(str(1 if mode == "single" else 2))
         self.saved_table_widget_item_text = "hello world"
 
         self.wait_time = 100
 
-        # don't forget to set ActiveSaveData to True before starting the real shocktube experiment
-        self.save_data_loopcount = ActiveSaveData
+        self.acq_mode = 1 if mode == "single" else 2
 
-        # if self.card_index is 1, set the data back up path to the data back up for card 1 folder
-        if self.card_index == 1:
-            self.databackup_path = "DataBackup/card1/"
-
-        # otherwise, if card_index is two, set it to the data backup folder for card 2
-        elif self.card_index == 2:
-            self.databackup_path = "DataBackup/card2/"
+        config["StmConfig"]["buffersize"] = str(self.min_buffer_size)
+        with open(self.inifile_stream, "w") as configfile:
+            config.write(configfile)
 
     @property
     def plotchecklevel(self):
@@ -200,6 +167,12 @@ class StreamWithGui(dsa.Stream):
         config.read(self.inifile_stream)
         plotchecklevel = config["PlotCheckLevel"]["plotchecklevel"]
         return float(plotchecklevel)
+
+    @property
+    def min_buffer_size(self):
+        config = ConfigParser()
+        config.read(self.inifile_stream)
+        return int(int(config["Acquisition"]["samplerate"]) / 100 * self.acq_mode)
 
     def save_table_item(self, row, col):
         self.saved_table_widget_item_text = self.tableWidget.item(row, col).text()
@@ -219,6 +192,9 @@ class StreamWithGui(dsa.Stream):
 
         if (row, col) == (4, 0):
             self.setTriggerSource(row, col)
+
+        if (row, col) == (5, 0):
+            self.set_acquisition_mode(row, col)
 
     def set_new_plotchecklevel(self, row, col):
         if not self.tableWidget.item(row, col).text().isnumeric():
@@ -319,6 +295,39 @@ class StreamWithGui(dsa.Stream):
             self.inifile_stream, ext_trigger
         )  # only change trigger source for streaming
 
+    def set_acquisition_mode(self, row, col):
+        if not self.tableWidget.item(row, col).text().isnumeric():
+            dsa.raise_error(self.ErrorWindow, "input must be an integer")
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
+            return
+
+        num = int(self.tableWidget.item(row, col).text())
+        if num != 1 and num != 2:
+            dsa.raise_error(
+                self.ErrorWindow, f"acquisition mode must be 1 (single) or 2 (dual)"
+            )
+            self.tableWidget.item(row, col).setText(
+                str(self.saved_table_widget_item_text)
+            )
+
+        mode = "single" if num == 1 else "dual"
+
+        # so far just set the streaming mode, can change acquire mode later too
+        dsa.setAcquisitionMode(self.inifile_stream, mode=mode)
+
+        self.acq_mode = num
+
+        if self.ppifg is None:
+            config = ConfigParser()
+            config.read(self.inifile_stream)
+            config["StmConfig"]["buffersize"] = str(self.min_buffer_size)
+            with open(self.inifile_stream, "w") as configfile:
+                config.write(configfile)
+        else:
+            self.apply_ppifg()
+
     def plot(self):
         if self.single_acquire_array is None:
             dsa.raise_error(self.ErrorWindow, "no data acquired yet")
@@ -332,15 +341,7 @@ class StreamWithGui(dsa.Stream):
     def initialization_before_streaming(self):
         # initialization common amongst all sample programs:
         # ________________________________________________________________________________________
-        if self.card_index == 2:
-            if self.shared_info.handle1_initialized:
-                self.handle = dsa.get_handle(1)
-            else:
-                self.handle = dsa.get_handle(self.card_index)
-
-        else:
-            self.handle = dsa.get_handle(1)
-            self.shared_info.handle1_initialized = True
+        self.handle = dsa.get_handle(1)
 
         if self.handle < 0:
             # get error string
@@ -616,7 +617,7 @@ class StreamWithGui(dsa.Stream):
         else:
             if num < 0:
                 dsa.raise_error(self.ErrorWindow, "can't be negative")
-                num = int(13e6)
+                num = int(self.min_buffer_size)
                 self.le_buffer_size_MB.setText(str(num / 1e6))
 
         self.data_storage_size = num
@@ -688,9 +689,6 @@ class StreamWithGui(dsa.Stream):
 
         self.actionSave.triggered.connect(self.save)
 
-        self.btn_start_both_streams.clicked.connect(self.stream_data)
-        self.btn_stop_both_streams.clicked.connect(self.terminate)
-
         # table widget connections
         self.tableWidget.cellClicked.connect(self.save_table_item)
         self.tableWidget.cellChanged.connect(self.slot_for_table_widget)
@@ -701,100 +699,79 @@ class StreamWithGui(dsa.Stream):
     def updateDisplay(self, X):
         center_ind_chnged_by_loop = False
 
-        x, y = X
+        x, y_ch1, y_ch2 = X
         # y = np.frombuffer(y, dtype='h') <- already implemented this in the UpdateDisplay class
         n_plot = self._nplot
         if not self.adjusted_buffer_to_ppifg:
-            y = self.adc_to_volts(y)
-            self.curve.setData(x=x[:n_plot], y=y[:n_plot])
+            y_ch1 = self.adc_to_volts(y_ch1)
+            y_ch2 = self.adc_to_volts(y_ch2)
+            self.curve_ch1.setData(x=x[:n_plot], y=y_ch1[:n_plot])
+            self.curve_ch2.setData(x=x[:n_plot], y=y_ch2[:n_plot])
         else:
             # y buffer converted from ADC values to volts
-            y = self.adc_to_volts(y)
+            y_ch1 = self.adc_to_volts(y_ch1)
+            y_ch2 = self.adc_to_volts(y_ch2)
 
             if not self.gui.rbtn_dont_correct.isChecked():
                 # if this instance runs card 2 and the walking check is referenced for card 1
-                if np.all(
-                    [
-                        self.gui.rbtn_walkon_1.isChecked(),
-                        self.card_index == 2,
-                        self.shared_info.center_ind is not None,
-                    ]
-                ):
-                    self.center_ind = self.shared_info.center_ind
+                center_ind_chnged_by_loop = True
 
-                # if this instance runs card 1 and the walking check is referenced for card 2
-                elif np.all(
-                    [
-                        self.gui.rbtn_walkon_2.isChecked(),
-                        self.card_index == 1,
-                        self.shared_info.center_ind is not None,
-                    ]
-                ):
-                    self.center_ind = self.shared_info.center_ind
+                # section of y that will be plotted to screen
+                section = y_ch1[
+                    self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2
+                ]
 
-                else:
-                    center_ind_chnged_by_loop = True
+                # the indices of values in section that are above the level threshold indicating the presence of an
+                # interferogram
+                ind = (
+                    abs(section - np.mean(section)) > self._level - np.mean(section)
+                ).nonzero()[0]
 
-                    # section of y that will be plotted to screen
-                    section = y[
-                        self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2
-                    ]
+                # if the number of indices is less than half the original value (set when we know there was an
+                # interferogram in there)
+                if 0 < len(ind) < self._N_ind * 0.25:
+                    avg = np.mean(ind)
 
-                    # the indices of values in section that are above the level threshold indicating the presence of an
-                    # interferogram
-                    ind = (
-                        abs(section - np.mean(section)) > self._level - np.mean(section)
-                    ).nonzero()[0]
+                    # if the interferogram is walking out right of the screen, the correction should be to move it left (
+                    # the plot window would move right)
+                    if avg > n_plot // 2:
+                        correction = n_plot
 
-                    # if the number of indices is less than half the original value (set when we know there was an
-                    # interferogram in there)
-                    if 0 < len(ind) < self._N_ind * 0.25:
-                        avg = np.mean(ind)
+                    # otherwise it is walking out to the left of the screen, and the correction should be to move it
+                    # right (the plot window would move left)
+                    else:
+                        correction = -n_plot
 
-                        # if the interferogram is walking out right of the screen, the correction should be to move it left (
-                        # the plot window would move right)
-                        if avg > n_plot // 2:
-                            correction = n_plot
+                    # an easy way to implement this correction is to move to the next interferogram in the buffer
+                    self.center_ind += self.ppifg + correction
 
-                        # otherwise it is walking out to the left of the screen, and the correction should be to move it
-                        # right (the plot window would move left)
-                        else:
-                            correction = -n_plot
+                    # when we reach the end of the buffer, wrap around
+                    if self.center_ind > len(y_ch1):
+                        self.center_ind -= len(y_ch1)
 
-                        # an easy way to implement this correction is to move to the next interferogram in the buffer
-                        self.center_ind += self.ppifg + correction
+                # same thing as above, except if the number of indices is already 0, use the previous set of indices
+                elif len(ind) == 0 and self._ind_old is not None:
+                    avg = np.mean(self._ind_old)
+                    if avg > n_plot // 2:
+                        correction = n_plot
+                    else:
+                        correction = -n_plot
 
-                        # when we reach the end of the buffer, wrap around
-                        if self.center_ind > len(y):
-                            self.center_ind -= len(y)
+                    self.center_ind += self.ppifg + correction
+                    if self.center_ind > len(y_ch1):
+                        self.center_ind -= len(y_ch1)
 
-                    # same thing as above, except if the number of indices is already 0, use the previous set of indices
-                    elif len(ind) == 0 and self._ind_old is not None:
-                        avg = np.mean(self._ind_old)
-                        if avg > n_plot // 2:
-                            correction = n_plot
-                        else:
-                            correction = -n_plot
+                # save the current set of indices in case this set passed without correction, but the next set
+                # has no elements
+                self._ind_old = ind
 
-                        self.center_ind += self.ppifg + correction
-                        if self.center_ind > len(y):
-                            self.center_ind -= len(y)
-
-                    # save the current set of indices in case this set passed without correction, but the next set
-                    # has no elements
-                    self._ind_old = ind
-
-                # if not walking independently and we got this far, then this card stream instance must
-                # be referenced for center_ind by the other card_stream instance
-                if (
-                    not self.gui.rbtn_walk_independently.isChecked()
-                ) and center_ind_chnged_by_loop:
-                    self.shared_info.center_ind = self.center_ind
-                    # print('setting shared center_ind')
-
-            self.curve.setData(
+            self.curve_ch1.setData(
                 x=x[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
-                y=y[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
+                y=y_ch1[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
+            )
+            self.curve_ch2.setData(
+                x=x[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
+                y=y_ch2[self.center_ind - n_plot // 2 : self.center_ind + n_plot // 2],
             )
 
     def change_stream_buffer_size(self, num, mB=False):
@@ -828,20 +805,9 @@ class StreamWithGui(dsa.Stream):
             dsa.raise_error(self.ErrorWindow, "stop card stream first")
             return
 
-        if self.card_index == 1:
-            self.single_acquire_array = Acquire.acquire(
-                self.acquire_npts, inifile=self.inifile_acquire
-            )
-        else:
-            # call initialize twice, to get the second card in the registry
-            handle1 = Acquire.initialize()
-            handle2 = Acquire.initialize()
-            PyGage.FreeSystem(handle1)
-
-            # handle2 will be freed by Acquire.acquire
-            self.single_acquire_array = Acquire.acquire(
-                self.acquire_npts, handle=handle2, inifile=self.inifile_acquire
-            )
+        self.single_acquire_array = Acquire.acquire(
+            self.acquire_npts, inifile=self.inifile_acquire
+        )
 
         gc.collect()
 
@@ -864,8 +830,8 @@ class StreamWithGui(dsa.Stream):
             buffer_size_bytes = target_NBYTES
 
         # have the buffer be at least 13 MB
-        if buffer_size_bytes < 13e6:
-            N = int(np.ceil(13e6 / buffer_size_bytes))
+        if buffer_size_bytes < self.min_buffer_size:
+            N = int(np.ceil(self.min_buffer_size / buffer_size_bytes))
             buffer_size_bytes *= N
 
         self.change_stream_buffer_size(buffer_size_bytes, mB=False)
@@ -881,7 +847,7 @@ class StreamWithGui(dsa.Stream):
         self.le_ppifg.setText(str(self.ppifg))
         self.center_ind = self.ppifg
 
-        if prep_walk_correction:
+        if prep_walk_correction and self.single_acquire_array is not None:
             section = self.single_acquire_array[
                 self.ppifg - self._nplot // 2 : self.ppifg + self._nplot // 2
             ]
@@ -891,83 +857,62 @@ class StreamWithGui(dsa.Stream):
             self._ind_old = None
             self._N_ind = len(ind)
 
+        if self.single_acquire_array is None:
+            self.gui.rbtn_dont_correct.setChecked(True)
+
     def save(self):
         if self.data_storage_buffer is None:
             dsa.raise_error(self.ErrorWindow, "no data saved to storage buffer yet")
             return
 
-        filename, _ = qt.QFileDialog.getSaveFileName(
-            caption=f"Save Data for Card {self.card_index}"
-        )
+        filename, _ = qt.QFileDialog.getSaveFileName(caption=f"Save Data")
         if filename == "":
             return
 
-        N_ifgs = self.data_storage_buffer.size // (self.ppifg * 2)
-        filename += "_{Nifgs}x{ppifg}".format(ppifg=int(self.ppifg), Nifgs=int(N_ifgs))
+        N_ifgs = self.data_storage_buffer.size // (self.ppifg * 2) // self.acq_mode
 
-        # saving as binary file
-        # filename += ".bin"
-        # self.data_storage_buffer.tofile(filename)
+        filename_ch1 = filename + "_{Nifgs}x{ppifg}_ch1".format(
+            ppifg=int(self.ppifg), Nifgs=int(N_ifgs)
+        )
 
         # saving as .npy file
-        filename += ".npy"
-        data = np.frombuffer(self.data_storage_buffer, "<h")
-        data.resize((N_ifgs, self.ppifg))
-        np.save(filename, data)
+        filename_ch1 += ".npy"
+        data = np.frombuffer(self.data_storage_buffer, "<h")[:: self.acq_mode]
+        # data.resize((N_ifgs, self.ppifg))
+        np.save(filename_ch1, data)
+
+        if self.acq_mode == 2:
+            filename_ch2 = filename + "_{Nifgs}x{ppifg}_ch2".format(
+                ppifg=int(self.ppifg), Nifgs=int(N_ifgs)
+            )
+            filename_ch2 += ".npy"
+            data = np.frombuffer(self.data_storage_buffer, "<h")[1 :: self.acq_mode]
+            # data.resize((N_ifgs, self.ppifg))
+            np.save(filename_ch2, data)
 
     def terminate(self):
         super().terminate()
-        if self.card_index == 1:
-            self.shared_info.handle1_initialized = False
 
 
-class GuiTwoCards(qt.QMainWindow, Ui_MainWindow):
-    def __init__(self):
-        qt.QMainWindow.__init__(self)
-        Ui_MainWindow.__init__(self)
-        self.setupUi(self)
+# class GuiTwoCards(qt.QMainWindow, Ui_MainWindow):
+#     def __init__(self):
+#         qt.QMainWindow.__init__(self)
+#         Ui_MainWindow.__init__(self)
+#         self.setupUi(self)
 
-        self.shared_info = SharedInfo()
+#         # if you want to use the Two Cards Gui, but only running one of the cards, comment out the appropriate
+#         # stream1 or stream2 lines below
+#         self.stream1 = StreamWithGui(
+#             self,
+#             index=1,
+#             inifile_stream="include/Stream2Analysis_CARD1.ini",
+#             inifile_acquire="include/Acquire_CARD1.ini",
+#         )
+#         self.stream2 = StreamWithGui(
+#             self,
+#             index=2,
+#             inifile_stream="include/Stream2Analysis_CARD2.ini",
+#             inifile_acquire="include/Acquire_CARD2.ini",
+#         )
 
-        # if you want to use the Two Cards Gui, but only running one of the cards, comment out the appropriate
-        # stream1 or stream2 lines below
-        if extTrigger:
-            self.stream1 = StreamWithGui(
-                self,
-                index=1,
-                inifile_stream="include/Stream2Analysis_exttrigger.ini",
-                inifile_acquire="include/Acquire_CARD1.ini",
-                shared_info=self.shared_info,
-            )
-            self.stream2 = StreamWithGui(
-                self,
-                index=2,
-                inifile_stream="include/Stream2Analysis_exttrigger.ini",
-                inifile_acquire="include/Acquire_CARD2.ini",
-                shared_info=self.shared_info,
-            )
-        else:
-            self.stream1 = StreamWithGui(
-                self,
-                index=1,
-                inifile_stream="include/Stream2Analysis_CARD1.ini",
-                inifile_acquire="include/Acquire_CARD1.ini",
-                shared_info=self.shared_info,
-            )
-            self.stream2 = StreamWithGui(
-                self,
-                index=2,
-                inifile_stream="include/Stream2Analysis_CARD2.ini",
-                inifile_acquire="include/Acquire_CARD2.ini",
-                shared_info=self.shared_info,
-            )
-
-        self.show()
-
-
-class SharedInfo:
-    __slots__ = ["center_ind", "handle1_initialized"]
-
-    def __init__(self):
-        self.center_ind = None
-        self.handle1_initialized = False
+#         self.show()
